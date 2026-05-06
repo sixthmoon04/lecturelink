@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LectureLink — 야마와 KMLE를 AI로 단일화</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap');
+    @font-face { font-family:'LINESeedKR'; font-weight:400; src:url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Rg.woff2') format('woff2'); font-display:swap; }
+    @font-face { font-family:'LINESeedKR'; font-weight:700; src:url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Bd.woff2') format('woff2'); font-display:swap; }
+    .ll-root,.ll-root * { font-family:'LINESeedKR','IBM Plex Sans KR','Apple SD Gothic Neo',-apple-system,BlinkMacSystemFont,system-ui,sans-serif; letter-spacing:-0.03em; }
+    .ll-root h1,.ll-root h2,.ll-root h3 { font-weight:700; letter-spacing:-0.05em; }
+    .ui-heavy { font-weight:800; }
+    .num-tabular { font-feature-settings:"tnum"; font-weight:800; }
+    .terms-scroll::-webkit-scrollbar,.sidebar-scroll::-webkit-scrollbar { width:6px; }
+    .terms-scroll::-webkit-scrollbar-track,.sidebar-scroll::-webkit-scrollbar-track { background:transparent; }
+    .terms-scroll::-webkit-scrollbar-thumb,.sidebar-scroll::-webkit-scrollbar-thumb { background:#D3D9D4; border-radius:3px; }
+    .terms-scroll::-webkit-scrollbar-thumb:hover,.sidebar-scroll::-webkit-scrollbar-thumb:hover { background:#8CBDB3; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; } #root { width:100%; }
+    @keyframes ll-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .ll-pulse { animation:ll-pulse 2s infinite; }
+    @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+    .accordion-content { animation:slideDown 0.4s ease-out forwards; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation:fadeIn 0.3s ease forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const {useState, useEffect} = React;
+
+    /* ── 공통: 인라인 SVG 아이콘 렌더러 ── */
+    const Icon = ({name, size=24, strokeWidth=2, className='', style={}}) => {
+      const p = {width:size, height:size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor',
+        strokeWidth, strokeLinecap:'round', strokeLinejoin:'round', className, style};
+      switch(name) {
+        case 'ChevronLeft':   return <svg {...p}><polyline points="15 18 9 12 15 6"/></svg>;
+        case 'ChevronRight':  return <svg {...p}><polyline points="9 18 15 12 9 6"/></svg>;
+        case 'ArrowRight':    return <svg {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+        case 'BookOpen':      return <svg {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+        case 'FileText':      return <svg {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>;
+        case 'Search':        return <svg {...p}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+        case 'GraduationCap': return <svg {...p}><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>;
+        case 'Lock':          return <svg {...p}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
+        case 'User':          return <svg {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+        case 'Check':         return <svg {...p}><polyline points="20 6 9 17 4 12"/></svg>;
+        case 'X':             return <svg {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+        case 'Lightbulb':     return <svg {...p}><line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14z"/></svg>;
+        case 'Sparkles':      return <svg {...p}><path d="M12 3l1.5 5h5l-4 3 1.5 5-4-3-4 3 1.5-5-4-3h5z"/><path d="M5 3l.8 2.5H8L6 7l.8 2.5L5 8.17 3.2 9.5 4 7 2 5.5h2.2z"/><path d="M19 11l.8 2.5H22l-2 1.5.8 2.5-2-1.33-2 1.33.8-2.5-2-1.5h2.2z"/></svg>;
+        case 'Brain':         return <svg {...p}><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.14z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.14z"/></svg>;
+        case 'Microscope':    return <svg {...p}><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14l2-2"/><path d="M7 12l-4-4 4-4 1.5 1.5"/></svg>;
+        case 'AlertCircle':   return <svg {...p}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+        case 'AlertTriangle': return <svg {...p}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+        case 'Shield':        return <svg {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+        case 'Menu':          return <svg {...p}><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>;
+        case 'Trophy':        return <svg {...p}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>;
+        case 'Zap':           return <svg {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+        case 'RotateCcw':     return <svg {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>;
+        default:              return null;
+      }
+    };
+
+    /* ── 브랜드 로고 SVG ── */
+    const Logo = ({size=36}) => (
+      <svg width={size} height={size} viewBox="0 0 40 40" fill="none">
+        <rect x="2" y="2" width="36" height="36" rx="10" fill="#8CBDB3"/>
+        <path d="M13 14 Q13 11 16 11 L19 11 Q22 11 22 14 L22 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+        <path d="M27 26 Q27 29 24 29 L21 29 Q18 29 18 26 L18 23" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+        <circle cx="20" cy="20" r="2.2" fill="#E67E22"/>
+      </svg>
+    );
+
+    const UploadIcon = ({size=36}) => (
+      <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+        <path d="M32 10V34" stroke="#8CBDB3" strokeWidth="3" strokeLinecap="round"/>
+        <path d="M22 20L32 10L42 20" stroke="#8CBDB3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <path d="M12 40V50C12 52.8 14.2 55 17 55H47C49.8 55 52 52.8 52 50V40" stroke="#2F4F4F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+        <circle cx="48" cy="18" r="3" fill="#E67E22"/>
+      </svg>
+    );
+
+
+    /* ════════════════════════════════════════
+       VIEWER — QuestionView (공통 서브 컴포넌트)
+    ════════════════════════════════════════ */
+    function QuestionView({question, selectedAnswer, setSelectedAnswer, graded, isCorrect,
+      handleGrade, handleReset, bannerHeader, ctaColor, ctaLabel, resetLabel}) {
+
+      return (
+        <div>
+          {/* 문제 카드 */}
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-4">
+            {/* 다크 배너 */}
+            <div className="px-6 py-4 flex items-center gap-3 flex-wrap"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              {bannerHeader}
+            </div>
+
+            {/* 문제 본문 */}
+            <div className="px-6 md:px-8 py-6">
+              <p className="text-sm md:text-[15px] leading-[1.85] mb-5" style={{color:'#2F4F4F', fontWeight:500}}>
+                {question.body}
+              </p>
+
+              {/* 이미지 (실제 이미지 or 플레이스홀더) */}
+              {question.image ? (
+                <div className="mb-6 flex justify-center">
+                  <img src={question.image} alt="문제 이미지"
+                    className="w-full max-w-sm rounded-2xl"
+                    style={{objectFit:'contain'}}/>
+                </div>
+              ) : question.has_image && (
+                <div className="mb-6 flex justify-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed"
+                    style={{borderColor:'#D3D9D4', backgroundColor:'#FAFBFB'}}>
+                    <Icon name="FileText" size={13} style={{color:'#B0B8B4'}}/>
+                    <span style={{fontSize:'12px', color:'#9CA3AF', fontWeight:500}}>사진이 복기되지 않았습니다</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 5지선다 */}
+              <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                {question.choices.map((c) => {
+                  const isSelected = selectedAnswer === c.id;
+                  const isAnswer = c.id === question.answer;
+                  let bg='#FFFFFF', border='#E5EAE8', textColor='#2F4F4F', numBg='#F5F9F8', numColor='#2F4F4F';
+                  if (graded) {
+                    if (isAnswer)        { bg='#F0F9F4'; border='#76C7C0'; numBg='#76C7C0'; numColor='#FFFFFF'; }
+                    else if (isSelected) { bg='#FDF0EE'; border='#E67E22'; numBg='#E67E22'; numColor='#FFFFFF'; }
+                  } else if (isSelected) {
+                    bg='#F5F9F8'; border='#8CBDB3'; numBg='#2F4F4F'; numColor='#FFFFFF';
+                  }
+                  return (
+                    <button key={c.id}
+                      onClick={() => !graded && setSelectedAnswer(c.id)}
+                      disabled={graded}
+                      className="w-full flex items-center gap-3 text-left transition"
+                      style={{backgroundColor:bg, border:`1.5px solid ${border}`, borderRadius:'16px',
+                        padding:'14px', cursor:graded?'default':'pointer'}}>
+                      <div className="flex-shrink-0 flex items-center justify-center transition"
+                        style={{width:28, height:28, borderRadius:'8px', backgroundColor:numBg,
+                          color:numColor, fontSize:'12px', fontFeatureSettings:'"tnum"', fontWeight:800}}>
+                        {c.id}
+                      </div>
+                      <div className="flex-1 flex flex-col gap-2">
+                        <span className="text-sm" style={{color:textColor, fontWeight:500}}>{c.text}</span>
+                        {question.choiceImages && question.choiceImages[c.id] && (
+                          <img src={question.choiceImages[c.id]} alt={`선지${c.id} 이미지`}
+                            className="w-full max-w-xs rounded-xl"
+                            style={{objectFit:'contain'}}/>
+                        )}
+                      </div>
+                      {graded && isAnswer && <Icon name="Check" size={16} style={{color:'#76C7C0'}} strokeWidth={3}/>}
+                      {graded && isSelected && !isAnswer && <Icon name="X" size={16} style={{color:'#E67E22'}} strokeWidth={3}/>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 액션 바 */}
+            <div className="px-6 md:px-8 py-4 border-t flex items-center justify-between gap-3"
+              style={{borderColor:'#F0F0F0', backgroundColor:'#FAFBFB'}}>
+              {!graded ? (
+                <>
+                  <span className="text-xs" style={{color:'#2F4F4F', opacity:0.6, fontWeight:500}}>
+                    {selectedAnswer ? `${selectedAnswer}번 선택됨` : '답을 선택해주세요'}
+                  </span>
+                  <button onClick={handleGrade} disabled={!selectedAnswer}
+                    className="flex items-center gap-1.5 transition"
+                    style={{backgroundColor:selectedAnswer?ctaColor:'#D3D9D4', color:'#FFFFFF', fontWeight:700,
+                      padding:'10px 24px', borderRadius:'9999px', fontSize:'14px',
+                      cursor:selectedAnswer?'pointer':'not-allowed', border:'none'}}>
+                    {ctaLabel}
+                    <Icon name="ArrowRight" size={14}/>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center"
+                      style={{width:28, height:28, borderRadius:'50%', backgroundColor:isCorrect?'#76C7C0':'#E67E22'}}>
+                      {isCorrect
+                        ? <Icon name="Check" size={14} style={{color:'white'}} strokeWidth={3}/>
+                        : <Icon name="X" size={14} style={{color:'white'}} strokeWidth={3}/>
+                      }
+                    </div>
+                    <span className="text-sm" style={{color:isCorrect?'#5BA89F':'#E67E22', fontWeight:700}}>
+                      {isCorrect ? '정답입니다!' : `오답 — 정답은 ${question.answer}번`}
+                    </span>
+                  </div>
+                  <button onClick={handleReset}
+                    className="text-xs transition hover:bg-gray-50"
+                    style={{color:'#2F4F4F', border:'1px solid #D3D9D4', fontWeight:700,
+                      padding:'8px 20px', borderRadius:'9999px', backgroundColor:'white'}}>
+                    {resetLabel}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 해설 카드 (채점 후 슬라이드 다운) */}
+          {graded && (
+            <div className="accordion-content bg-white rounded-3xl overflow-hidden"
+              style={{border:'2px solid #76C7C0'}}>
+              <div className="px-6 md:px-8 py-5 flex items-center gap-2" style={{backgroundColor:'#F0FAF8'}}>
+                <div className="flex items-center justify-center"
+                  style={{width:32, height:32, borderRadius:'12px', backgroundColor:'#76C7C0'}}>
+                  <Icon name="Lightbulb" size={16} style={{color:'white'}}/>
+                </div>
+                <div>
+                  <div className="text-sm" style={{color:'#2F4F4F', fontWeight:700}}>해설</div>
+                  <div style={{fontSize:'11px', color:'#2F4F4F', opacity:0.6, fontWeight:500}}>AI가 정리한 핵심 풀이</div>
+                </div>
+              </div>
+              <div className="px-6 md:px-8 py-6">
+                <div className="rounded-2xl p-4 mb-4" style={{backgroundColor:'#F5F9F8'}}>
+                  <div className="flex items-start gap-2">
+                    <Icon name="Sparkles" size={14} style={{color:'#8CBDB3', flexShrink:0, marginTop:'2px'}}/>
+                    <p className="text-sm leading-relaxed" style={{color:'#2F4F4F', fontWeight:500}}>
+                      {question.explanation.summary}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-xs mb-3 inline-flex items-center gap-1.5" style={{color:'#2F4F4F', fontWeight:700}}>
+                  <div style={{width:4, height:12, borderRadius:'9999px', backgroundColor:'#E67E22'}}/>
+                  핵심 포인트
+                </div>
+                <ul style={{display:'flex', flexDirection:'column', gap:'10px'}}>
+                  {question.explanation.points.map((p, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm" style={{color:'#2F4F4F', fontWeight:500}}>
+                      <span className="flex-shrink-0 flex items-center justify-center"
+                        style={{width:20, height:20, borderRadius:'6px', backgroundColor:'#FEF5EC',
+                          color:'#E67E22', fontSize:'10px', fontWeight:800, marginTop:'2px',
+                          fontFeatureSettings:'"tnum"', flexShrink:0}}>
+                        {i+1}
+                      </span>
+                      <span className="leading-relaxed">{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+
+    /* ════════════════════════════════════════
+       기출 문제 카드 (독립 상태 보유)
+    ════════════════════════════════════════ */
+    function PastQuestionCard({question}) {
+      const [selectedAnswer, setSelectedAnswer] = useState(null);
+      const [graded, setGraded] = useState(false);
+      const isCorrect = graded && selectedAnswer === question.answer;
+      return (
+        <div className="mb-6">
+          <QuestionView
+            question={question}
+            selectedAnswer={selectedAnswer}
+            setSelectedAnswer={setSelectedAnswer}
+            graded={graded}
+            isCorrect={isCorrect}
+            handleGrade={() => { if (selectedAnswer !== null) setGraded(true); }}
+            handleReset={() => { setSelectedAnswer(null); setGraded(false); }}
+            bannerHeader={
+              <>
+                <span className="px-3 py-1 rounded-full text-xs bg-white num-tabular" style={{color:'#2F4F4F', fontWeight:700}}>
+                  {question.year} {question.code}
+                </span>
+                <span className="text-xs" style={{color:'rgba(255,255,255,0.9)', fontWeight:500}}>
+                  [<span style={{color:'#FBC07A', fontWeight:700}}>{question.professor} 교수님</span>] {question.topic}
+                </span>
+              </>
+            }
+            ctaColor="#E67E22"
+            ctaLabel="채점하기"
+            resetLabel="다시 풀기"
+          />
+        </div>
+      );
+    }
+
+    /* ─ 강의 ID → 차시 키 매핑 ─ */
+    const LECTURE_SESSION = {
+      pediatric_basic:'차시1', diffuse_ild:'차시2',   ild_intro:'차시3',
+      ild_detail:'차시4',      hp_eosino:'차시5',      pleural_eff:'차시6',
+      lung_tumor:['차시7','차시8'], pediatric_std:'차시9',
+      pediatric_adv:'차시9',   nontumor:'차시10',       surgical:'차시11',
+      critical:'차시12',       ards:'차시13',           lungcancer:'차시14',
+      tumor_path:'차시15',     thoracic_surg:'차시16',  mediastinum:'차시17',
+      mediastinum_img:'차시18',nuclear_med:'차시19',    radiation:'차시20',
+      pulm_rehab:'차시21',     pediatric_img:'차시22',  mech_vent:'차시23',
+    };
+
+    /* ─ rawText → 문제 본문 + 선택지 분리 ─
+       선지가 한 줄에 "1) A 2) B 3) C 4) D 5) E" 형태로 이어지는 경우와
+       각 선지가 별도 줄에 있는 경우 모두 처리 */
+    function parseRawText(rawText) {
+      if (!rawText) return {body:'', choices:[]};
+      const lines = rawText.split('\n');
+      const bodyLines = [];
+      const choiceLines = [];
+      let inChoices = false;
+      for (const line of lines) {
+        if (!inChoices && /^\s*1\)/.test(line)) inChoices = true;
+        if (inChoices) choiceLines.push(line);
+        else bodyLines.push(line);
+      }
+      // 모든 선지 텍스트를 합친 뒤 선지 번호 앞에서 분리 (인라인/멀티라인 모두 대응)
+      const choiceText = choiceLines.join(' ');
+      const parts = choiceText.split(/(?=\b[1-5]\))/);
+      const choiceMap = {};
+      for (const part of parts) {
+        const m = part.match(/^\s*([1-5])\)\s*(.*)/);
+        if (m) choiceMap[parseInt(m[1])] = m[2].trim();
+      }
+      const choices = [1,2,3,4,5].filter(n => n in choiceMap)
+        .map(n => ({id:n, text:choiceMap[n].trim()}));
+      return {body: bodyLines.join('\n').trim(), choices};
+    }
+
+    /* ─ 이미지 상수 ─ */
+    // 연도별 [폴더경로, 확장자] 매핑
+    const IMG_DIRS = {
+      2020: ['야마 사진/호흡기 야마 사진 2020', '.png'],
+      2021: ['야마 사진/호흡기 야마 사진 2021', '.png'],
+      2022: ['야마 사진/호흡기 야마 사진 2022', '.png'],
+      2023: ['야마 사진/호흡기 야마 사진 2023', '.png'],
+      2025: ['야마 사진/호흡기 야마 사진 2025', '.PNG'],
+    };
+    const Q_IMAGES = new Set([
+      // 2025
+      '2025-4','2025-5','2025-6','2025-7','2025-8','2025-10',
+      '2025-14','2025-15','2025-16','2025-17','2025-18',
+      '2025-19','2025-25','2025-27','2025-28','2025-32','2025-37','2025-41',
+      // 2023
+      '2023-2','2023-3','2023-4','2023-5','2023-6','2023-7','2023-8',
+      '2023-10','2023-13','2023-14','2023-15','2023-19','2023-23',
+      '2023-25','2023-26','2023-27','2023-28','2023-30','2023-31',
+      '2023-35','2023-36','2023-37','2023-42','2023-43','2023-44',
+      '2023-47','2023-48','2023-49','2023-50','2023-51','2023-52',
+      // 2022
+      '2022-6','2022-7','2022-8','2022-10','2022-11','2022-12','2022-13','2022-14',
+      '2022-15','2022-16','2022-24','2022-25','2022-26','2022-27','2022-28',
+      '2022-29','2022-31','2022-32','2022-35','2022-36','2022-37','2022-39',
+      '2022-40','2022-46','2022-49','2022-50','2022-51','2022-52','2022-53',
+      '2022-55','2022-56','2022-57','2022-58',
+      // 2021
+      '2021-3','2021-4','2021-9','2021-11','2021-12','2021-17','2021-18',
+      '2021-19','2021-20','2021-21','2021-22','2021-23','2021-25','2021-26',
+      '2021-29','2021-31','2021-32','2021-43','2021-45','2021-46','2021-47',
+      '2021-49','2021-50','2021-51','2021-52','2021-53','2021-54',
+      // 2020
+      '2020-8','2020-13','2020-14','2020-21','2020-22','2020-23','2020-24',
+      '2020-26','2020-29','2020-30','2020-31','2020-32','2020-33','2020-34',
+      '2020-35','2020-36','2020-37','2020-41','2020-42','2020-43','2020-44',
+      '2020-45','2020-47','2020-48','2020-49','2020-50','2020-51','2020-52',
+    ]);
+    const C_IMAGES = new Set([]); // 선지 이미지 (향후 추가)
+
+    /* ─ JSON 문제 → QuestionView 포맷 변환 ─ */
+    function transformQ(raw) {
+      const {body, choices} = parseRawText(raw.rawText);
+      const qKey = `${raw.year}-${raw.num}`;
+      const imgEntry = IMG_DIRS[raw.year];
+      let image = null;
+      if (Q_IMAGES.has(qKey) && imgEntry) {
+        image = `${imgEntry[0]}/${qKey}${imgEntry[1]}`;
+      }
+      const choiceImages = {};
+      for (let i = 1; i <= 5; i++) {
+        const cKey = `${raw.year}-${raw.num}-선지${i}`;
+        if (C_IMAGES.has(cKey) && imgEntry) choiceImages[i] = `${imgEntry[0]}/${cKey}${imgEntry[1]}`;
+      }
+      return {
+        id: raw.id,
+        year: raw.year + '년',
+        code: 'Q' + raw.num,
+        professor: raw.professor,
+        topic: (raw.topic||'').replace(/\s+/g,' ').trim(),
+        body, choices,
+        answer: parseInt(raw.answer),
+        explanation: {summary: raw.explanation||'', points:[]},
+        has_image: raw.has_image || false,
+        image,
+        choiceImages,
+      };
+    }
+
+    /* ════════════════════════════════════════
+       지엽형 모의고사 — 문제 데이터
+    ════════════════════════════════════════ */
+    const TRIVIA_QUESTIONS = {
+      ild_intro: [
+        {
+          id:'ti-1',
+          body:'HRCT에서 bilateral subpleural ground glass opacity(GGO)가 주된 소견이며 honeycombing이 없는 ILD 패턴은?',
+          choices:[
+            {id:1, text:'UIP'},
+            {id:2, text:'NSIP'},
+            {id:3, text:'DIP'},
+            {id:4, text:'RB-ILD'},
+            {id:5, text:'COP'},
+          ],
+          answer:2,
+          explanation:'NSIP(비특이성 간질성 폐렴)의 HRCT는 양측 하엽 주변부의 GGO와 traction bronchiectasis가 특징이다. Honeycombing은 UIP 패턴에서 주로 나타나며, NSIP에서는 드물거나 없다.',
+        },
+        {
+          id:'ti-2',
+          body:'ILD 환자에서 surgical lung biopsy가 필요한 경우 현재 가장 선호되는 수술 방법은?',
+          choices:[
+            {id:1, text:'개흉 폐생검 (open lung biopsy)'},
+            {id:2, text:'VATS (비디오 흉강경 수술)'},
+            {id:3, text:'CT 유도하 경피적 침생검'},
+            {id:4, text:'경기관지 폐생검 (TBLB)'},
+            {id:5, text:'흉강천자'},
+          ],
+          answer:2,
+          explanation:'VATS(Video-Assisted Thoracoscopic Surgery)는 최소 침습으로 충분한 크기의 조직을 얻을 수 있어 ILD의 surgical biopsy에 현재 가장 선호된다. 개흉 생검보다 창상이 작고 회복이 빠르다.',
+        },
+        {
+          id:'ti-3',
+          body:'ILD의 폐기능 검사(PFT) 소견으로 옳은 것은?',
+          choices:[
+            {id:1, text:'폐쇄성 환기장애 (FEV1/FVC 감소)'},
+            {id:2, text:'제한성 환기장애 (FVC↓, TLC↓, FEV1/FVC 정상 또는 증가)'},
+            {id:3, text:'잔기량(RV) 증가'},
+            {id:4, text:'총폐용량(TLC) 증가'},
+            {id:5, text:'기능잔기용량(FRC) 증가'},
+          ],
+          answer:2,
+          explanation:'ILD는 폐 순응도(compliance) 감소로 인한 제한성 환기장애 패턴을 보인다. FVC와 TLC가 감소하며 FEV1/FVC 비율은 정상이거나 오히려 증가한다.',
+        },
+        {
+          id:'ti-4',
+          body:'기관지폐포세척(BAL)에서 lymphocytosis 시 CD4/CD8 비가 감소하여 CD8 T세포가 우세하게 나타나는 ILD는?',
+          choices:[
+            {id:1, text:'사르코이드증'},
+            {id:2, text:'IPF'},
+            {id:3, text:'HP (과민성 폐장염)'},
+            {id:4, text:'베릴리움증'},
+            {id:5, text:'NSIP'},
+          ],
+          answer:3,
+          explanation:'HP에서는 BAL에서 림프구 증가(>20-30%) 시 CD8 T세포가 우세하여 CD4/CD8 비가 감소한다. 반면 사르코이드증과 베릴리움증은 CD4 T세포가 우세(CD4/CD8 비 증가)하다.',
+        },
+        {
+          id:'ti-5',
+          body:'IPF(특발성 폐섬유화증)의 진단 후 중앙 생존기간(median survival)은?',
+          choices:[
+            {id:1, text:'1년 미만'},
+            {id:2, text:'1-2년'},
+            {id:3, text:'3-5년'},
+            {id:4, text:'7-10년'},
+            {id:5, text:'10년 이상'},
+          ],
+          answer:3,
+          explanation:'IPF의 중앙 생존기간은 진단 후 약 3-5년으로 예후가 매우 불량하다. 일부 환자는 급성 악화(acute exacerbation)를 경험하며 급격히 악화될 수 있다.',
+        },
+      ],
+      ild_detail: [
+        {
+          id:'td-1',
+          body:'조직학적으로 DAD(Diffuse Alveolar Damage) 패턴을 보이며 임상적으로 ARDS와 동일하게 나타나는 IIP(특발성 간질성 폐렴)는?',
+          choices:[
+            {id:1, text:'IPF'},
+            {id:2, text:'NSIP'},
+            {id:3, text:'COP'},
+            {id:4, text:'AIP (Acute Interstitial Pneumonia)'},
+            {id:5, text:'DIP'},
+          ],
+          answer:4,
+          explanation:'AIP(급성 간질성 폐렴)는 조직학적으로 DAD(미만성 폐포 손상) 패턴을 나타내며 임상적으로 ARDS와 동일하다. Hamman-Rich syndrome이라고도 불리며 예후가 매우 불량하다.',
+        },
+        {
+          id:'td-2',
+          body:'DIP(Desquamative Interstitial Pneumonia)의 조직 소견에서 폐포강을 균일하게 채우는 특징적인 세포는?',
+          choices:[
+            {id:1, text:'림프구'},
+            {id:2, text:'호산구'},
+            {id:3, text:'색소 침착된 대식세포 (pigmented macrophage)'},
+            {id:4, text:'호중구'},
+            {id:5, text:'형질세포'},
+          ],
+          answer:3,
+          explanation:'DIP는 흡연 관련 ILD로, 폐포강에 색소 침착된 대식세포(smoker\'s macrophage)가 균일하게 채워지는 것이 가장 특징적인 조직 소견이다.',
+        },
+        {
+          id:'td-3',
+          body:'스테로이드 치료에 반응이 가장 좋으며 대부분 완전 회복을 기대할 수 있는 IIP는?',
+          choices:[
+            {id:1, text:'IPF'},
+            {id:2, text:'AIP'},
+            {id:3, text:'COP (Cryptogenic Organizing Pneumonia)'},
+            {id:4, text:'NSIP (섬유화형)'},
+            {id:5, text:'LIP'},
+          ],
+          answer:3,
+          explanation:'COP(특발성 기질화 폐렴)는 스테로이드에 극적으로 반응하며 대부분 완전 회복된다. IPF는 스테로이드 치료 효과가 없으며 오히려 해로울 수 있다.',
+        },
+        {
+          id:'td-4',
+          body:'NSIP의 CT 소견에서 UIP/IPF와 구별되는 가장 중요한 특징은?',
+          choices:[
+            {id:1, text:'Honeycombing이 주된 소견'},
+            {id:2, text:'상엽 주변부에 우세한 분포'},
+            {id:3, text:'Honeycombing이 없거나 드물고 GGO가 주된 소견'},
+            {id:4, text:'단측성 분포'},
+            {id:5, text:'공동(cavity) 형성'},
+          ],
+          answer:3,
+          explanation:'NSIP는 UIP/IPF와 달리 honeycombing이 없거나 드물며, 양측 하엽 주변부의 GGO와 traction bronchiectasis가 주된 CT 소견이다. 이 감별이 임상적으로 중요한 이유는 치료 반응과 예후가 다르기 때문이다.',
+        },
+        {
+          id:'td-5',
+          body:'LIP(Lymphoid Interstitial Pneumonia)와 가장 흔하게 동반되는 전신 질환은?',
+          choices:[
+            {id:1, text:'류마티스 관절염 (RA)'},
+            {id:2, text:'전신홍반루푸스 (SLE)'},
+            {id:3, text:'쇼그렌 증후군 (Sjögren syndrome)'},
+            {id:4, text:'다발성 근염 (Polymyositis)'},
+            {id:5, text:'전신 경화증 (Scleroderma)'},
+          ],
+          answer:3,
+          explanation:'LIP는 쇼그렌 증후군과 가장 흔하게 동반된다. CT에서 양측 폐의 GGO와 thin-walled cyst가 특징적이며, HIV 감염에서도 나타날 수 있다.',
+        },
+      ],
+      hp_eosino: [
+        {
+          id:'the-1',
+          body:'과민성 폐장염(HP)의 급성형에서 항원 흡입 후 증상이 발현되는 전형적인 시간은?',
+          choices:[
+            {id:1, text:'수분 내 (즉시형, type I)'},
+            {id:2, text:'1-2시간 후'},
+            {id:3, text:'4-8시간 후'},
+            {id:4, text:'24-48시간 후'},
+            {id:5, text:'1주일 이상'},
+          ],
+          answer:3,
+          explanation:'HP 급성형은 항원 흡입 후 4-8시간 후 발열, 오한, 근육통, 기침, 호흡곤란이 발생한다. Type III(면역복합체) + Type IV(세포매개) 과민반응이 병태생리의 핵심이다.',
+        },
+        {
+          id:'the-2',
+          body:'농부폐(Farmer\'s lung)의 원인 항원으로 가장 중요한 것은?',
+          choices:[
+            {id:1, text:'Aspergillus fumigatus'},
+            {id:2, text:'Saccharopolyspora rectivirgula'},
+            {id:3, text:'Trichosporon asahii'},
+            {id:4, text:'Mycobacterium avium'},
+            {id:5, text:'Candida albicans'},
+          ],
+          answer:2,
+          explanation:'농부폐는 젖은 건초에 서식하는 thermophilic actinomycetes인 Saccharopolyspora rectivirgula(구 Micropolyspora faeni)가 주된 원인 항원이다.',
+        },
+        {
+          id:'the-3',
+          body:'Löffler 증후군(단순 폐호산구증)에서 나타나는 흉부 X-ray의 특징적 소견은?',
+          choices:[
+            {id:1, text:'양측 하엽 honeycombing'},
+            {id:2, text:'수일~수주 내 위치가 바뀌는 이동성 폐침윤'},
+            {id:3, text:'중심성 기관지확장증'},
+            {id:4, text:'폐문 림프절 비대'},
+            {id:5, text:'단일 공동 결절'},
+          ],
+          answer:2,
+          explanation:'Löffler 증후군의 핵심 특징은 말초혈 호산구 증가와 함께 흉부 X-ray에서 수일~수주 내 위치가 이동하는 일시적 폐침윤(transient migratory infiltrates)이다.',
+        },
+        {
+          id:'the-4',
+          body:'ABPA(Allergic Bronchopulmonary Aspergillosis)의 진단 기준에 포함되지 않는 것은?',
+          choices:[
+            {id:1, text:'기관지 천식'},
+            {id:2, text:'말초혈 호산구 증가'},
+            {id:3, text:'Aspergillus에 대한 피부 즉시형 반응 양성'},
+            {id:4, text:'혈청 총 IgE 및 Aspergillus 특이 IgE 상승'},
+            {id:5, text:'BAL에서 CD8 림프구 우세'},
+          ],
+          answer:5,
+          explanation:'ABPA 진단 기준: 천식, 말초혈 호산구 증가, Aspergillus 피부반응 양성, 특이 IgE/IgG 상승, 총 IgE 상승(>1000 IU/mL), 중심성 기관지확장증 등이 포함된다. BAL에서 CD8 림프구 우세는 HP의 소견이다.',
+        },
+        {
+          id:'the-5',
+          body:'만성 호산구성 폐렴(Chronic Eosinophilic Pneumonia)의 CT에서 "폐부종의 음성상(photographic negative of pulmonary edema)"으로 불리는 특징적 소견은?',
+          choices:[
+            {id:1, text:'중심부 우세의 GGO'},
+            {id:2, text:'양측 주변부(peripheral) 우세 consolidation'},
+            {id:3, text:'하엽 honeycombing'},
+            {id:4, text:'상엽 공동(cavity) 형성'},
+            {id:5, text:'기관지혈관속 결절'},
+          ],
+          answer:2,
+          explanation:'만성 호산구성 폐렴은 폐부종과 반대로 폐 주변부에 consolidation이 분포하여 "photographic negative of pulmonary edema"라 불린다. 이 특징적인 주변부 우세 분포가 진단의 핵심 단서다.',
+        },
+      ],
+    };
+
+    /* ════════════════════════════════════════
+       지엽형 모의고사 — 컴포넌트
+    ════════════════════════════════════════ */
+    function TriviaMockExam({lectureId, onProgress}) {
+      const questions = TRIVIA_QUESTIONS[lectureId] || [];
+      const [idx, setIdx] = useState(0);
+      const [selected, setSelected] = useState(null);
+      const [scores, setScores] = useState([]);
+      const [done, setDone] = useState(false);
+
+      const total = questions.length;
+
+      const reset = () => { setIdx(0); setSelected(null); setScores([]); setDone(false); };
+
+      if (!total) {
+        return (
+          <div className="text-center py-16 rounded-3xl border border-dashed" style={{borderColor:'#D3D9D4'}}>
+            <div className="flex justify-center mb-3">
+              <Icon name="Lock" size={28} style={{color:'#D3D9D4'}}/>
+            </div>
+            <div className="text-sm" style={{color:'#9CA3AF', fontWeight:500}}>이 차시의 지엽형 문제가 준비 중입니다</div>
+            <div style={{fontSize:'11px', color:'#9CA3AF', marginTop:'4px', fontWeight:500}}>베타테스트 이후 추가 예정</div>
+          </div>
+        );
+      }
+
+      /* 완료 화면 */
+      if (done) {
+        const correct = scores.filter(Boolean).length;
+        const msg = correct === total ? '완벽합니다!' : correct >= Math.ceil(total * 0.8) ? '잘 하셨습니다!' : correct >= Math.ceil(total * 0.6) ? '조금만 더 분발하세요!' : '다시 한번 복습해보세요.';
+        return (
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-7 flex flex-col items-center text-center gap-3"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              <div className="flex items-center justify-center"
+                style={{width:52, height:52, borderRadius:'18px', backgroundColor:'rgba(255,255,255,0.18)'}}>
+                <Icon name="Trophy" size={24} style={{color:'white'}}/>
+              </div>
+              <div>
+                <div className="text-white text-lg" style={{fontWeight:800}}>{total}문제 중 {correct}문제 정답</div>
+                <div style={{color:'rgba(255,255,255,0.72)', fontSize:'13px', fontWeight:500, marginTop:'3px'}}>{msg}</div>
+              </div>
+            </div>
+            <div className="px-6 py-6">
+              {/* 문항별 결과 */}
+              <div className="flex justify-center gap-2 mb-6">
+                {scores.map((ok, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div className="flex items-center justify-center"
+                      style={{width:38, height:38, borderRadius:'12px',
+                        backgroundColor:ok?'#F0F9F4':'#FDF0EE',
+                        border:`2px solid ${ok?'#76C7C0':'#E67E22'}`}}>
+                      {ok
+                        ? <Icon name="Check" size={16} style={{color:'#76C7C0'}} strokeWidth={3}/>
+                        : <Icon name="X" size={16} style={{color:'#E67E22'}} strokeWidth={3}/>
+                      }
+                    </div>
+                    <span className="text-xs num-tabular" style={{color:'#2F4F4F', opacity:0.5}}>{i+1}</span>
+                  </div>
+                ))}
+              </div>
+              {/* 베타 메시지 */}
+              <div className="flex justify-center mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full"
+                  style={{backgroundColor:'#F5F9F8', border:'1px solid #E5EAE8'}}>
+                  <Icon name="AlertCircle" size={13} style={{color:'#8CBDB3'}}/>
+                  <span style={{fontSize:'12px', color:'#2F4F4F', fontWeight:500}}>
+                    베타테스트 이후 더 많은 모의고사 문제가 제공됩니다
+                  </span>
+                </div>
+              </div>
+              {/* 다시 풀기 */}
+              <div className="flex justify-center">
+                <button onClick={reset}
+                  className="flex items-center gap-2 transition hover:opacity-80"
+                  style={{backgroundColor:'#2F4F4F', color:'white', fontWeight:700,
+                    padding:'12px 32px', borderRadius:'9999px', fontSize:'14px', border:'none', cursor:'pointer'}}>
+                  <Icon name="RotateCcw" size={14}/>
+                  다시 풀기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      const q = questions[idx];
+
+      const handleSelect = (cid) => {
+        if (selected !== null) return;
+        setSelected(cid);
+        setScores(prev => [...prev, cid === q.answer]);
+      };
+
+      const handleNext = () => {
+        if (idx + 1 >= total) {
+          setDone(true);
+          onProgress && onProgress(1);
+        } else {
+          setIdx(i => i + 1);
+          setSelected(null);
+        }
+      };
+
+      return (
+        <div>
+          {/* 진행 바 */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1" style={{height:6, borderRadius:'9999px', backgroundColor:'#EDF1EF', overflow:'hidden'}}>
+              <div style={{height:'100%', borderRadius:'9999px', backgroundColor:'#2F4F4F',
+                width:`${(idx / total) * 100}%`, transition:'width 0.4s ease'}}/>
+            </div>
+            <span className="text-xs num-tabular flex-shrink-0" style={{color:'#2F4F4F', fontWeight:700}}>
+              {idx + 1} / {total}
+            </span>
+          </div>
+
+          {/* 문제 카드 */}
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-4">
+            {/* 다크 배너 */}
+            <div className="px-6 py-4 flex items-center gap-3"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              <span className="px-3 py-1 rounded-full text-xs bg-white num-tabular"
+                style={{color:'#2F4F4F', fontWeight:700}}>문항 {idx + 1} / {total}</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full"
+                style={{backgroundColor:'rgba(255,255,255,0.15)', fontSize:'11px', color:'white', fontWeight:700}}>
+                <Icon name="Microscope" size={11}/>지엽형
+              </span>
+            </div>
+
+            {/* 문제 본문 + 선지 */}
+            <div className="px-6 md:px-8 py-6">
+              <p className="text-sm md:text-[15px] leading-[1.85] mb-5" style={{color:'#2F4F4F', fontWeight:500}}>
+                {q.body}
+              </p>
+              <div style={{display:'flex', flexDirection:'column', gap:'8px'}}>
+                {q.choices.map((c) => {
+                  const isSelected = selected === c.id;
+                  const isAnswer = c.id === q.answer;
+                  const answered = selected !== null;
+                  let bg='#FFFFFF', border='#E5EAE8', textColor='#2F4F4F', numBg='#F5F9F8', numColor='#2F4F4F';
+                  let opacity = 1;
+                  if (answered) {
+                    if (isAnswer)        { bg='#F0F9F4'; border='#76C7C0'; numBg='#76C7C0'; numColor='#FFFFFF'; }
+                    else if (isSelected) { bg='#FDF0EE'; border='#E67E22'; numBg='#E67E22'; numColor='#FFFFFF'; }
+                    else                 { opacity = 0.4; }
+                  }
+                  return (
+                    <button key={c.id} onClick={() => handleSelect(c.id)} disabled={answered}
+                      className="w-full flex items-center gap-3 text-left transition"
+                      style={{backgroundColor:bg, border:`1.5px solid ${border}`, borderRadius:'16px',
+                        padding:'14px', cursor:answered?'default':'pointer', opacity}}>
+                      <div className="flex-shrink-0 flex items-center justify-center"
+                        style={{width:28, height:28, borderRadius:'8px', backgroundColor:numBg,
+                          color:numColor, fontSize:'12px', fontWeight:800}}>
+                        {c.id}
+                      </div>
+                      <span className="flex-1 text-sm" style={{color:textColor, fontWeight:500}}>{c.text}</span>
+                      {answered && isAnswer   && <Icon name="Check" size={16} style={{color:'#76C7C0'}} strokeWidth={3}/>}
+                      {answered && isSelected && !isAnswer && <Icon name="X" size={16} style={{color:'#E67E22'}} strokeWidth={3}/>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 액션 바 (선택 후 표시) */}
+            {selected !== null && (
+              <div className="px-6 md:px-8 py-4 border-t flex items-center justify-between gap-3"
+                style={{borderColor:'#F0F0F0', backgroundColor:'#FAFBFB'}}>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center"
+                    style={{width:28, height:28, borderRadius:'50%',
+                      backgroundColor:selected===q.answer?'#76C7C0':'#E67E22'}}>
+                    {selected === q.answer
+                      ? <Icon name="Check" size={14} style={{color:'white'}} strokeWidth={3}/>
+                      : <Icon name="X" size={14} style={{color:'white'}} strokeWidth={3}/>
+                    }
+                  </div>
+                  <span className="text-sm" style={{color:selected===q.answer?'#5BA89F':'#E67E22', fontWeight:700}}>
+                    {selected === q.answer ? '정답입니다!' : `오답 — 정답은 ${q.answer}번`}
+                  </span>
+                </div>
+                <button onClick={handleNext}
+                  className="flex items-center gap-1.5 transition hover:opacity-80"
+                  style={{backgroundColor:'#2F4F4F', color:'white', fontWeight:700,
+                    padding:'10px 24px', borderRadius:'9999px', fontSize:'14px', border:'none', cursor:'pointer'}}>
+                  {idx + 1 >= total ? '결과 보기' : '다음 문항'}
+                  <Icon name="ArrowRight" size={14}/>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 해설 (선택 후 표시) */}
+          {selected !== null && (
+            <div className="accordion-content bg-white rounded-3xl overflow-hidden"
+              style={{border:'2px solid #76C7C0'}}>
+              <div className="px-6 md:px-8 py-4 flex items-center gap-2" style={{backgroundColor:'#F0FAF8'}}>
+                <div className="flex items-center justify-center"
+                  style={{width:32, height:32, borderRadius:'12px', backgroundColor:'#76C7C0'}}>
+                  <Icon name="Lightbulb" size={16} style={{color:'white'}}/>
+                </div>
+                <div>
+                  <div className="text-sm" style={{color:'#2F4F4F', fontWeight:700}}>해설</div>
+                  <div style={{fontSize:'11px', color:'#2F4F4F', opacity:0.6, fontWeight:500}}>핵심 정리</div>
+                </div>
+              </div>
+              <div className="px-6 md:px-8 py-5">
+                <div className="rounded-2xl p-4" style={{backgroundColor:'#F5F9F8'}}>
+                  <div className="flex items-start gap-2">
+                    <Icon name="Sparkles" size={14} style={{color:'#8CBDB3', flexShrink:0, marginTop:'2px'}}/>
+                    <p className="text-sm leading-relaxed" style={{color:'#2F4F4F', fontWeight:500}}>
+                      {q.explanation}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ════════════════════════════════════════
+       야마형 모의고사 — 유틸 + 데이터 + 컴포넌트
+    ════════════════════════════════════════ */
+    function shuffle(arr) {
+      const a=[...arr];
+      for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+      return a;
+    }
+    function genSet(bank, wrongTypes, usedIds, size) {
+      const sorted=[
+        ...shuffle(bank.filter(q=>wrongTypes.has(q.type)&&!usedIds.has(q.id))),
+        ...shuffle(bank.filter(q=>!wrongTypes.has(q.type)&&!usedIds.has(q.id))),
+        ...shuffle(bank.filter(q=>usedIds.has(q.id))),
+      ];
+      const seen=new Set(), result=[];
+      for(const q of sorted){if(!seen.has(q.id)){seen.add(q.id);result.push(q);}if(result.length>=size)break;}
+      return shuffle(result);
+    }
+    function expandYama(raw) {
+      const out={};
+      for(const[lec,qs]of Object.entries(raw)){
+        out[lec]=qs.map(([body,cs,answer,explanation,type],i)=>({
+          id:`${lec}-${i}`,type,body,answer,explanation,
+          choices:cs.map((text,j)=>({id:j+1,text})),
+        }));
+      }
+      return out;
+    }
+
+    const YAMA_QUESTIONS = expandYama({
+      ild_intro:[
+        ["IPF/UIP 패턴에서 honeycombing의 전형적 분포는?",
+         ["상엽 중심부","하엽 주변부(subpleural)","범폐성 균일","기관지 주변","상엽 주변부"],
+         2,"UIP/IPF의 honeycombing은 양하엽 subpleural 분포가 전형적이다.","hrct"],
+        ["NSIP와 UIP를 CT로 감별할 때 NSIP에 유리한 소견은?",
+         ["Honeycombing 우세","상엽 분포","GGO 우세 + honeycombing 부재","공동 형성","단측성"],
+         3,"NSIP는 GGO 우세, honeycombing 부재가 UIP 감별점이다.","hrct"],
+        ["Traction bronchiectasis의 발생 기전은?",
+         ["기도 감염의 반복","주변 폐조직 섬유화로 기도가 당겨 확장됨","선천성 기관지 이상","기관지 종양","점액마개 형성"],
+         2,"Traction bronchiectasis는 주변 섬유화 조직이 기도를 당겨 확장시킨 것으로 섬유화 ILD의 중요 CT 소견이다.","hrct"],
+        ["ILD의 surgical lung biopsy 표준 술기는?",
+         ["개흉술","VATS","CT유도 침생검","기관지경 폐생검","흉강천자"],
+         2,"VATS는 최소침습으로 충분한 조직을 얻을 수 있어 ILD biopsy의 표준이다.","diagnosis"],
+        ["ILD에서 TBLB(경기관지 폐생검)의 진단율이 가장 높은 질환은?",
+         ["IPF","사르코이드증","NSIP","AIP","DIP"],
+         2,"사르코이드증은 기관지 주변 분포를 보여 TBLB 진단율이 50-90%로 높다.","diagnosis"],
+        ["ILD에서 DLCO 감소가 반영하는 것은?",
+         ["기도 폐쇄","폐포-모세혈관 가스교환 장애","흉막 비후","복근력 저하","상기도 협착"],
+         2,"DLCO 감소는 폐포-모세혈관 계면의 가스교환 장애를 반영하며 ILD의 중요한 기능지표이다.","pft"],
+        ["ILD의 PFT에서 FEV1/FVC 비율은?",
+         ["항상 0.7 미만","정상 또는 오히려 증가","항상 0.5 미만","측정 불가","변동 없음"],
+         2,"ILD는 제한성 패턴으로 FVC·TLC가 감소하나 FEV1/FVC는 정상이거나 오히려 증가한다.","pft"],
+        ["사르코이드증의 BAL에서 CD4/CD8 비 변화는?",
+         ["감소(CD8 우세)","증가(CD4 우세)","변화 없음","호중구 우세","호산구 우세"],
+         2,"사르코이드증 BAL: CD4 우세, CD4/CD8 비 >3.5. HP(CD8 우세)와 반대.","bal"],
+        ["IPF의 BAL에서 가장 흔한 세포는?",
+         ["림프구","호산구","호중구(± 호산구)","CD4 T세포","정상"],
+         3,"IPF BAL: 호중구(± 호산구) 증가가 특징적이다. 림프구 증가는 드물다.","bal"],
+        ["IPF에 FDA 승인된 항섬유화제 두 가지는?",
+         ["Pirfenidone + Nintedanib","Pirfenidone + 스테로이드","Nintedanib + Azathioprine","스테로이드 + NAC","Cyclophosphamide + Nintedanib"],
+         1,"IPF의 항섬유화제: Pirfenidone(ASCEND)과 Nintedanib(INPULSIS)이 FDA 승인.","prognosis"],
+      ],
+      ild_detail:[
+        ["COP의 1차 치료는?",
+         ["항생제","스테로이드","Nintedanib","항진균제","Azathioprine"],
+         2,"COP는 스테로이드에 극적으로 반응하며 대부분 완전 회복된다.","cop"],
+        ["COP에서 스테로이드 치료 후 재발을 줄이기 위한 유지요법 기간은?",
+         ["2주","1개월","6-12개월","3년","평생"],
+         3,"COP는 재발이 흔해 스테로이드 6-12개월 유지요법이 필요하다.","cop"],
+        ["COP의 특징적인 CT 소견은?",
+         ["하엽 honeycombing","기관지주변 및 주변부 consolidation","단일 공동","흉수 우세","상엽 섬유화"],
+         2,"COP CT: peribronchovascular 또는 subpleural 분포의 consolidation. 이동성을 보이기도 한다.","cop"],
+        ["AIP의 조직학적 패턴은?",
+         ["UIP","NSIP","DAD (Diffuse Alveolar Damage)","OP","DIP"],
+         3,"AIP는 조직학적으로 DAD 패턴을 보이며 임상적으로 ARDS와 동일하다. Hamman-Rich syndrome이라고도 한다.","aip"],
+        ["AIP를 ARDS와 구별하는 가장 중요한 특징은?",
+         ["조직 소견이 다름","원인 불명(특발성)이다","치료법이 완전히 다름","예후가 훨씬 좋음","CT 소견이 다름"],
+         2,"AIP는 ARDS와 조직학적으로 동일하나 명확한 촉발 원인을 찾을 수 없는 특발성이다.","aip"],
+        ["DIP의 가장 중요한 위험인자는?",
+         ["직업성 분진","흡연","결합조직병","방사선","약물"],
+         2,"DIP는 흡연 관련 ILD로 흡연과 강력히 연관된다. 금연이 핵심 치료이다.","dip"],
+        ["DIP의 HRCT 소견은?",
+         ["하엽 honeycombing","광범위 GGO (± small cyst)","기관지혈관속 결절","Consolidation 우세","상엽 섬유화"],
+         2,"DIP HRCT: 광범위 GGO(대식세포 침윤)가 특징이며 small cyst가 동반될 수 있다.","dip"],
+        ["CTD(결합조직병)에서 가장 흔하게 동반되는 ILD 패턴은?",
+         ["UIP","NSIP","COP","AIP","DIP"],
+         2,"CTD-ILD에서는 NSIP 패턴이 가장 흔하다. 특히 SSc, PM/DM에서 두드러진다.","nsip"],
+        ["LIP의 CT에서 특징적인 소견 조합은?",
+         ["Honeycombing + traction bronchiectasis","GGO + thin-walled cyst","결절 + 폐문비대","Consolidation 우세","공동 형성"],
+         2,"LIP CT: 양측 GGO + subpleural thin-walled cyst가 특징이다.","lip"],
+        ["LIP와 가장 흔하게 동반되는 전신 질환은?",
+         ["RA","SLE","Sjögren syndrome","Polymyositis","Scleroderma"],
+         3,"LIP는 Sjögren syndrome과 가장 흔하게 동반된다. HIV 소아 감염에서도 나타난다.","lip"],
+      ],
+      hp_eosino:[
+        ["HP 아급성형의 특징은?",
+         ["4-8시간 후 급발","수주~수개월 서서히 진행하는 기침·호흡곤란","즉시 호흡부전 진행","1년 이상 무증상","항생제에 반응"],
+         2,"HP 아급성형은 수주~수개월에 걸쳐 서서히 진행하는 기침, 호흡곤란이 특징이다.","hp_type"],
+        ["HP 만성형 치료에서 가장 중요한 첫 단계는?",
+         ["고용량 스테로이드","원인 항원 노출 차단","항진균제","산소 요법","항섬유화제"],
+         2,"HP 모든 형태에서 원인 항원 노출 차단이 가장 중요하다.","hp_type"],
+        ["새 사육자폐(Bird fancier's lung)의 원인 항원은?",
+         ["Saccharopolyspora rectivirgula","조류의 분변·깃털 단백","Aspergillus fumigatus","Trichosporon asahii","Candida"],
+         2,"새 사육자폐는 조류의 분변, 깃털, 혈청 단백이 원인 항원이다.","hp_cause"],
+        ["HP 진단에서 특이 침강항체(precipitating antibody)의 의미는?",
+         ["HP 확진 기준","항원 노출 시사하나 단독으로는 진단 불가","치료 반응 지표","중증도 반영","예후 예측"],
+         2,"특이 침강항체는 정상인에서도 양성일 수 있어 HP 진단의 보조이지만 단독으로는 진단 불가.","hp_cause"],
+        ["Löffler 증후군을 가장 흔히 유발하는 기생충은?",
+         ["Toxoplasma","Ascaris lumbricoides(회충)","Giardia","Entamoeba","Taenia"],
+         2,"Löffler 증후군은 Ascaris lumbricoides 유충의 폐 통과 시 가장 흔하게 발생한다.","loeffler"],
+        ["급성 호산구성 폐렴(AEP)과 만성 호산구성 폐렴(CEP)의 감별점으로 옳은 것은?",
+         ["AEP는 노인에 흔함","AEP는 스테로이드 반응 없음","AEP는 급성 호흡부전 동반 가능","CEP가 BAL 호산구 더 낮음","AEP는 재발이 잦음"],
+         3,"AEP: 급성 발병 + 급성 호흡부전. CEP: 아급성 경과, 재발 흔함.","loeffler"],
+        ["ABPA에서 중심성 기관지확장증의 발생 기전은?",
+         ["세균감염 반복","Aspergillus 과민반응으로 점액마개 형성 후 기도 확장","선천성 기도 이상","폐섬유화","직접 균 침범"],
+         2,"ABPA: Aspergillus 항원 과민반응 → 점액마개 → 기도 폐쇄·확장.","abpa"],
+        ["ABPA 치료에서 스테로이드와 병용하는 항진균제는?",
+         ["Amphotericin B","Itraconazole","Fluconazole","Nystatin","Caspofungin"],
+         2,"Itraconazole은 ABPA에서 항원 부하를 줄여 스테로이드 용량을 낮추는 데 도움이 된다.","abpa"],
+        ["만성 호산구성 폐렴(CEP)의 스테로이드 치료 후 재발률은?",
+         ["5% 미만","10-20%","50% 이상","재발 없음","100%"],
+         3,"CEP는 스테로이드 감량·중단 시 재발률 50% 이상. 장기 유지요법이 필요할 수 있다.","eos_other"],
+        ["CEP의 말초혈 호산구 수치는?",
+         ["정상","경도 증가(500-1500/μL)","현저한 증가(>1500/μL)","감소","변동 없음"],
+         3,"CEP에서는 말초혈 호산구 >1500/μL로 현저히 증가하는 것이 특징이다.","eos_other"],
+      ],
+    });
+
+    function YamaMockExam({lectureId, onProgress}) {
+      const bank = YAMA_QUESTIONS[lectureId] || [];
+      const SIZE=5, TOTAL=3;
+      const mkInit = (b) => {
+        const s=genSet(b,new Set(),new Set(),SIZE);
+        return {setIdx:0,qs:s,qi:0,sel:null,sAns:[],aAns:[],used:new Set(s.map(q=>q.id)),phase:'q'};
+      };
+      const [g,setG] = useState(()=>mkInit(bank));
+      useEffect(()=>{setG(mkInit(bank));},[lectureId]);
+
+      if(!bank.length) return (
+        <div className="text-center py-16 rounded-3xl border border-dashed" style={{borderColor:'#D3D9D4'}}>
+          <div style={{display:'flex',justifyContent:'center',marginBottom:8}}><Icon name="Lock" size={28} style={{color:'#D3D9D4'}}/></div>
+          <div className="text-sm" style={{color:'#9CA3AF',fontWeight:500}}>이 차시의 야마형 문제가 준비 중입니다</div>
+          <div style={{fontSize:'11px',color:'#9CA3AF',marginTop:4,fontWeight:500}}>베타테스트 이후 추가 예정</div>
+        </div>
+      );
+
+      const {setIdx,qs,qi,sel,sAns,aAns,used,phase}=g;
+      const q=qs[qi];
+
+      const onSel=(cid)=>{
+        if(sel!==null)return;
+        const ok=cid===q.answer;
+        setG(p=>({...p,sel:cid,sAns:[...p.sAns,{type:q.type,ok}]}));
+      };
+      const onNext=()=>{
+        if(qi+1>=SIZE){setG(p=>({...p,phase:'setdone'}));onProgress&&onProgress(setIdx+1);}
+        else setG(p=>({...p,qi:p.qi+1,sel:null}));
+      };
+      const onNextSet=()=>{
+        const newAll=[...aAns,...sAns];
+        if(setIdx+1>=TOTAL){setG(p=>({...p,aAns:newAll,phase:'done'}));return;}
+        const wt=new Set(sAns.filter(a=>!a.ok).map(a=>a.type));
+        const ns=genSet(bank,wt,used,SIZE);
+        setG(p=>({...p,setIdx:p.setIdx+1,qs:ns,qi:0,sel:null,sAns:[],aAns:newAll,
+          used:new Set([...p.used,...ns.map(q=>q.id)]),phase:'q'}));
+      };
+      const onReset=()=>setG(mkInit(bank));
+
+      /* ─ 완료 화면 ─ */
+      if(phase==='done'){
+        const tot=aAns.length, cor=aAns.filter(a=>a.ok).length;
+        return(
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-7 flex flex-col items-center text-center gap-3"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              <div style={{width:52,height:52,borderRadius:18,backgroundColor:'rgba(255,255,255,0.18)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="Trophy" size={24} style={{color:'white'}}/>
+              </div>
+              <div>
+                <div className="text-white text-lg" style={{fontWeight:800}}>총 {tot}문제 중 {cor}문제 정답</div>
+                <div style={{color:'rgba(255,255,255,0.72)',fontSize:13,fontWeight:500,marginTop:3}}>야마형 3세트 완료</div>
+              </div>
+            </div>
+            <div className="px-6 py-6">
+              <div style={{display:'flex',justifyContent:'center',marginBottom:20}}>
+                <div style={{display:'inline-flex',alignItems:'center',gap:8,padding:'8px 16px',borderRadius:9999,backgroundColor:'#F5F9F8',border:'1px solid #E5EAE8'}}>
+                  <Icon name="AlertCircle" size={13} style={{color:'#8CBDB3'}}/>
+                  <span style={{fontSize:12,color:'#2F4F4F',fontWeight:500}}>베타테스트 이후 더 많은 모의고사 문제가 제공됩니다</span>
+                </div>
+              </div>
+              <div style={{display:'flex',justifyContent:'center'}}>
+                <button onClick={onReset} style={{display:'flex',alignItems:'center',gap:8,backgroundColor:'#2F4F4F',color:'white',fontWeight:700,padding:'12px 32px',borderRadius:9999,fontSize:14,border:'none',cursor:'pointer'}}>
+                  <Icon name="RotateCcw" size={14}/>처음부터 다시 풀기
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      /* ─ 세트 완료 화면 ─ */
+      if(phase==='setdone'){
+        const cor=sAns.filter(a=>a.ok).length, nth=setIdx+1;
+        const hasWrong=cor<SIZE;
+        return(
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden">
+            <div className="px-6 py-5 flex items-center gap-3"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              <div style={{width:32,height:32,borderRadius:12,backgroundColor:'rgba(255,255,255,0.18)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Icon name="Zap" size={16} style={{color:'white'}}/>
+              </div>
+              <span className="text-white" style={{fontSize:15,fontWeight:800}}>야마형 모의고사 {nth}/{TOTAL}회 사용</span>
+            </div>
+            <div className="px-6 py-6 flex flex-col items-center gap-4">
+              <div style={{display:'flex',gap:8}}>
+                {sAns.map((a,i)=>(
+                  <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                    <div style={{width:38,height:38,borderRadius:12,backgroundColor:a.ok?'#F0F9F4':'#FDF0EE',border:`2px solid ${a.ok?'#76C7C0':'#E67E22'}`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                      {a.ok?<Icon name="Check" size={16} style={{color:'#76C7C0'}} strokeWidth={3}/>
+                           :<Icon name="X" size={16} style={{color:'#E67E22'}} strokeWidth={3}/>}
+                    </div>
+                    <span style={{fontSize:11,color:'#2F4F4F',opacity:0.5,fontWeight:800}}>{i+1}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{textAlign:'center'}}>
+                <div className="text-sm" style={{color:'#2F4F4F',fontWeight:500}}>이번 세트: <strong>{cor}/{SIZE}문제 정답</strong></div>
+                {hasWrong&&<div style={{fontSize:12,color:'#E67E22',marginTop:4,fontWeight:500}}>다음 세트에 틀린 유형의 문제를 반복 출제합니다</div>}
+              </div>
+              {nth<TOTAL?(
+                <button onClick={onNextSet} style={{display:'flex',alignItems:'center',gap:6,backgroundColor:'#2F4F4F',color:'white',fontWeight:700,padding:'12px 28px',borderRadius:9999,fontSize:14,border:'none',cursor:'pointer'}}>
+                  다음 세트로<Icon name="ArrowRight" size={14}/>
+                </button>
+              ):(
+                <button onClick={onNextSet} style={{display:'flex',alignItems:'center',gap:6,backgroundColor:'#5C9982',color:'white',fontWeight:700,padding:'12px 28px',borderRadius:9999,fontSize:14,border:'none',cursor:'pointer'}}>
+                  결과 보기<Icon name="ArrowRight" size={14}/>
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      /* ─ 문제 화면 ─ */
+      const answered=sel!==null;
+      return(
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+            <span style={{fontSize:11,color:'#2F4F4F',opacity:0.6,fontWeight:500,flexShrink:0}}>세트 {setIdx+1}/{TOTAL}</span>
+            <div style={{flex:1,height:6,borderRadius:9999,backgroundColor:'#EDF1EF',overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:9999,backgroundColor:'#5C9982',width:`${(qi/SIZE)*100}%`,transition:'width 0.4s ease'}}/>
+            </div>
+            <span className="num-tabular" style={{fontSize:12,color:'#2F4F4F',fontWeight:700,flexShrink:0}}>{qi+1}/{SIZE}</span>
+          </div>
+          <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-4">
+            <div className="px-6 py-4 flex items-center gap-3"
+              style={{background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)'}}>
+              <span className="px-3 py-1 rounded-full text-xs bg-white num-tabular" style={{color:'#2F4F4F',fontWeight:700}}>문항 {qi+1} / {SIZE}</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'4px 10px',borderRadius:9999,backgroundColor:'rgba(255,255,255,0.15)',fontSize:11,color:'white',fontWeight:700}}>
+                <Icon name="Zap" size={11}/>야마형
+              </span>
+            </div>
+            <div className="px-6 md:px-8 py-6">
+              <p className="text-sm md:text-[15px] leading-[1.85] mb-5" style={{color:'#2F4F4F',fontWeight:500}}>{q.body}</p>
+              <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                {q.choices.map((c)=>{
+                  const isSel=sel===c.id, isAns=c.id===q.answer;
+                  let bg='#FFFFFF',border='#E5EAE8',numBg='#F5F9F8',numColor='#2F4F4F',opacity=1;
+                  if(answered){
+                    if(isAns){bg='#F0F9F4';border='#76C7C0';numBg='#76C7C0';numColor='#FFFFFF';}
+                    else if(isSel){bg='#FDF0EE';border='#E67E22';numBg='#E67E22';numColor='#FFFFFF';}
+                    else{opacity=0.4;}
+                  }
+                  return(
+                    <button key={c.id} onClick={()=>onSel(c.id)} disabled={answered}
+                      className="w-full flex items-center gap-3 text-left transition"
+                      style={{backgroundColor:bg,border:`1.5px solid ${border}`,borderRadius:16,padding:14,cursor:answered?'default':'pointer',opacity}}>
+                      <div style={{width:28,height:28,borderRadius:8,backgroundColor:numBg,color:numColor,fontSize:12,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{c.id}</div>
+                      <span className="flex-1 text-sm" style={{color:'#2F4F4F',fontWeight:500}}>{c.text}</span>
+                      {answered&&isAns&&<Icon name="Check" size={16} style={{color:'#76C7C0'}} strokeWidth={3}/>}
+                      {answered&&isSel&&!isAns&&<Icon name="X" size={16} style={{color:'#E67E22'}} strokeWidth={3}/>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {answered&&(
+              <div className="px-6 md:px-8 py-4 border-t flex items-center justify-between gap-3"
+                style={{borderColor:'#F0F0F0',backgroundColor:'#FAFBFB'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',backgroundColor:sel===q.answer?'#76C7C0':'#E67E22',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                    {sel===q.answer?<Icon name="Check" size={14} style={{color:'white'}} strokeWidth={3}/>:<Icon name="X" size={14} style={{color:'white'}} strokeWidth={3}/>}
+                  </div>
+                  <span className="text-sm" style={{color:sel===q.answer?'#5BA89F':'#E67E22',fontWeight:700}}>
+                    {sel===q.answer?'정답입니다!':`오답 — 정답은 ${q.answer}번`}
+                  </span>
+                </div>
+                <button onClick={onNext}
+                  style={{display:'flex',alignItems:'center',gap:6,backgroundColor:'#2F4F4F',color:'white',fontWeight:700,padding:'10px 24px',borderRadius:9999,fontSize:14,border:'none',cursor:'pointer'}}>
+                  {qi+1>=SIZE?'세트 완료':'다음 문항'}<Icon name="ArrowRight" size={14}/>
+                </button>
+              </div>
+            )}
+          </div>
+          {answered&&(
+            <div className="accordion-content bg-white rounded-3xl overflow-hidden" style={{border:'2px solid #76C7C0'}}>
+              <div className="px-6 md:px-8 py-4 flex items-center gap-2" style={{backgroundColor:'#F0FAF8'}}>
+                <div style={{width:32,height:32,borderRadius:12,backgroundColor:'#76C7C0',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <Icon name="Lightbulb" size={16} style={{color:'white'}}/>
+                </div>
+                <div>
+                  <div className="text-sm" style={{color:'#2F4F4F',fontWeight:700}}>해설</div>
+                  <div style={{fontSize:11,color:'#2F4F4F',opacity:0.6,fontWeight:500}}>핵심 정리</div>
+                </div>
+              </div>
+              <div className="px-6 md:px-8 py-5">
+                <div className="rounded-2xl p-4" style={{backgroundColor:'#F5F9F8'}}>
+                  <div className="flex items-start gap-2">
+                    <Icon name="Sparkles" size={14} style={{color:'#8CBDB3',flexShrink:0,marginTop:2}}/>
+                    <p className="text-sm leading-relaxed" style={{color:'#2F4F4F',fontWeight:500}}>{q.explanation}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ════════════════════════════════════════
+       VIEWER — 메인 컴포넌트
+    ════════════════════════════════════════ */
+    function Viewer({onBack}) {
+      const [activeTab, setActiveTab] = useState('past');
+      const [examType, setExamType] = useState('yama');
+      const [selectedLecture, setSelectedLecture] = useState('ild_intro');
+      const [selectedAnswer, setSelectedAnswer] = useState(null);
+      const [graded, setGraded] = useState(false);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [allQuestions, setAllQuestions] = useState([]);
+      const [loadingQ, setLoadingQ] = useState(true);
+      const [yamaProgress, setYamaProgress] = useState(0);
+      const [triviaProgress, setTriviaProgress] = useState(0);
+
+      useEffect(() => {
+        fetch('/output/questions_mapping.json')
+          .then(r => r.json())
+          .then(d => { setAllQuestions(d.questions || []); setLoadingQ(false); })
+          .catch(() => setLoadingQ(false));
+      }, []);
+
+      const mainRef = React.useRef(null);
+
+      useEffect(() => {
+        setSelectedAnswer(null);
+        setGraded(false);
+        setYamaProgress(0);
+        setTriviaProgress(0);
+        if (mainRef.current) mainRef.current.scrollTop = 0;
+      }, [selectedLecture]);
+
+      const lectures = [
+        {id:'ild_intro',       title:'간질성 폐질환 (총론)',                               professor:'윤성환', period:'8:30',  years:'2020-2025년', count:24},
+        {id:'ild_detail',      title:'간질성 폐질환 (각론)',                               professor:'윤성환', period:'9:30',  years:'2020-2025년', count:19},
+        {id:'hp_eosino',       title:'과민성폐장염/호산구성폐질환',                        professor:'윤성환', period:'10:30', years:'2020-2025년', count:15},
+        {id:'pleural_eff',     title:'흉곽, 늑막삼출',                                     professor:'박순효', period:'11:30', years:'2020-2025년', count:22},
+        {id:'lung_tumor',      title:'폐종양',                                             professor:'박순효', period:'13:30', years:'2020-2025년', count:53},
+        {id:'pediatric_basic', title:'소아 호흡기의 발달/특성, 질환 진단 및 호흡부전',    professor:'김가은', period:'15:30', years:'2020-2025년', count:31},
+        {id:'pediatric_std',   title:'소아 상기도 감염, 소아 하기도 감염',                professor:'김가은', period:'8:30',  years:'2020-2025년', count:28},
+        {id:'pediatric_adv',   title:'소아 선천성 호흡기 질환, 비감염성 질환, 흉막 질환', professor:'김가은', period:'9:30',  years:'2020-2025년', count:36},
+        {id:'surgical',        title:'폐 종양의 외과적 치료',                              professor:'금동윤', period:'10:30', years:'2020-2025년', count:18},
+        {id:'nontumor',        title:'비종양성 폐질환의 외과적 치료 · 폐이식술',           professor:'금동윤', period:'11:30', years:'2020-2025년', count:12},
+        {id:'critical',        title:'중환자의학',                                         professor:'박재석', period:'13:30', years:'2020-2025년', count:38},
+        {id:'ards',            title:'급성호흡곤란증후군',                                 professor:'박재석', period:'14:30', years:'2020-2025년', count:16},
+        {id:'diffuse_ild',     title:'광범위사이질폐질환의 특징을 설명할 수 있다.',        professor:'황일선', period:'15:30', years:'2020-2025년', count:18},
+        {id:'lungcancer',      title:'폐암 조기진단/폐결절',                               professor:'김태훈', period:'8:30',  years:'2020-2023년', count:21},
+        {id:'tumor_path',      title:'폐암종의 병리 조직학적 특징을 설명할 수 있다.',      professor:'황일선', period:'9:30',  years:'2020-2025년', count:26},
+        {id:'thoracic_surg',   title:'흉부절개 및 폐절제술, 흉막질환',                    professor:'채민철', period:'10:30', years:'2020-2025년', count:14},
+        {id:'mediastinum',     title:'종격동 질환, 종양',                                  professor:'채민철', period:'11:30', years:'2020-2025년', count:11},
+        {id:'mediastinum_img', title:'늑막과 종격동 종양의 영상의학',                     professor:'홍정희', period:'9:30',  years:'2020-2025년', count:9},
+        {id:'nuclear_med',     title:'호흡기질환의 핵의학적 진단방법',                    professor:'송봉일', period:'10:30', years:'2020-2025년', count:8},
+        {id:'radiation',       title:'폐종양 및 흉선종의 방사선 치료',                    professor:'김진희', period:'11:30', years:'2020-2025년', count:7},
+        {id:'mech_vent',       title:'기계환기',                                           professor:'박재석', period:'8:30',  years:'2020-2025년', count:20},
+        {id:'pulm_rehab',      title:'호흡 재활',                                          professor:'김경태', period:'9:30',  years:'2020-2025년', count:12},
+        {id:'pediatric_img',   title:'소아 호흡기질환의 영상의학',                        professor:'이희정', period:'10:30', years:'2020-2025년', count:10},
+      ];
+
+      const filtered = lectures.filter(it =>
+        !searchQuery ||
+        it.title.includes(searchQuery) ||
+        it.professor.includes(searchQuery)
+      );
+
+      const question = {
+        year:'2021년', code:'Q26', professor:'박재석', topic:'급성호흡곤란증후군',
+        body:'평소 건강하던 53세 남자가 숨이차서 왔다. 6일전 교통사고로 인한 다발성 골절로 타병원 입원 중 급격하게 호흡곤란이 악화되어 기도삽관상태로 응급실로 내원하였다. 혈압 130/70mmHg, 맥박 110회/분, 호흡 30회/분 체온 37도 이었다. 의식은 감소되어 있었고, 양쪽 가슴에서 거품소리가 들렸다. 인공호흡기 설정을 FiO2 0.5, PEEP 8cmH2O 로 시행한 동맥혈 가스분석결과는 pH 7.43, PaCO2 35mmHg, PaO2 80mmHg, HCO3 - 20mEq/L 이었다. 심초음파에서는 별다른 이상이 없었고, 흉부 X-선 사진은 다음과 같다. 이 환자 진단으로 가장 가능성이 높은 것은?',
+        choices:[
+          {id:1, text:'폐렴'},
+          {id:2, text:'폐색전증'},
+          {id:3, text:'폐부종'},
+          {id:4, text:'급성호흡곤란증후군'},
+          {id:5, text:'재성유미증의 급성악화'},
+        ],
+        answer:4,
+        explanation:{
+          summary:'다발성 골절과 같은 비-심인성 원인 + 양측 폐 침윤 + P/F ratio < 300 → ARDS 진단 기준에 부합합니다.',
+          points:[
+            '베를린 정의: 1주 이내 발생, 양측 폐 침윤, 심부전으로 설명되지 않음',
+            'P/F ratio = PaO2/FiO2 = 80/0.5 = 160 → 중등도(Moderate) ARDS',
+            '심초음파 정상 → 심인성 폐부종 배제',
+            '외상 후 발생 패턴은 ARDS의 전형적 임상 양상',
+          ],
+        }
+      };
+
+      const examOptions = [
+        {id:'yama',     name:'야마형', iconName:'Zap',        color:'#5C9982', bg:'#EAF4F0', desc:'기출 변형 문제로 약점 집중 훈련',  total:3, betaNote:true, locked:false},
+        {id:'detailed', name:'지엽형', iconName:'Microscope', color:'#2F4F4F', bg:'#F2F4F4', desc:'디테일과 예외사항까지 꼼꼼하게', total:1, betaNote:true, locked:false},
+        {id:'advanced', name:'심화형', iconName:'Brain',      color:'#E67E22', bg:'#FEF5EC', desc:'베타테스트 이후 제공 예정',        total:1, betaNote:true, locked:true},
+      ];
+
+      /* ── 기출 탭용 파생 데이터 (최신순 정렬) ── */
+      const EXCLUDED_TOPICS = ['기관지확장증','기관지 확장증','직업성','환경성'];
+      const LECTURE_EXCLUDED_TOPICS = {
+        lungcancer: ['환기장애','수면무호흡','폐색전증'],
+      };
+      const filterQForLecture = (lectureId) => {
+        const sk = LECTURE_SESSION[lectureId];
+        const lexclude = LECTURE_EXCLUDED_TOPICS[lectureId] || [];
+        return allQuestions.filter(q => {
+          const inSession = Array.isArray(sk) ? sk.includes(q.session) : q.session === sk;
+          if (!inSession || q.year < 2020) return false;
+          if (EXCLUDED_TOPICS.some(t => (q.topic||'').includes(t))) return false;
+          if (lexclude.some(t => (q.topic||'').includes(t))) return false;
+          if (lectureId === 'pediatric_std') return ['상기도','하기도'].some(t => (q.topic||'').includes(t));
+          if (lectureId === 'pediatric_adv') return !['상기도','하기도'].some(t => (q.topic||'').includes(t));
+          return true;
+        });
+      };
+      const sessionQuestions = filterQForLecture(selectedLecture)
+        .sort((a,b) => b.year - a.year || a.num - b.num)
+        .map(transformQ);
+
+      /* ── 모의고사 탭용 핸들러 ── */
+      const isCorrect = graded && selectedAnswer === question.answer;
+      const handleGrade = () => { if (selectedAnswer !== null) setGraded(true); };
+      const handleReset = () => { setSelectedAnswer(null); setGraded(false); };
+
+      return (
+        <div className="ll-root min-h-screen" style={{backgroundColor:'#FAFBFB'}}>
+
+          {/* ── HEADER ── */}
+          <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+            <div className="px-6 py-3.5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button onClick={onBack}
+                  className="transition hover:opacity-80"
+                  style={{width:38, height:38, borderRadius:'12px', flexShrink:0, cursor:'pointer',
+                    background:'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)',
+                    color:'white', border:'none', boxShadow:'0 2px 8px rgba(47,79,79,0.3)',
+                    display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <Icon name="ChevronLeft" size={18} strokeWidth={2.5}/>
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <Logo size={30}/>
+                  <div style={{lineHeight:1.3}}>
+                    <div className="flex items-center gap-1.5 text-base" style={{color:'#2F4F4F', fontWeight:700}}>
+                      <span style={{color:'#E67E22'}}>호흡기 2차</span>
+                      <span>기출문제 뷰어</span>
+                    </div>
+                    <div style={{fontSize:'11px', color:'#2F4F4F', opacity:0.55, fontWeight:500}}>
+                      2020-2025 역대 기출 · 차시별 분류
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border"
+                  style={{backgroundColor:'#F5F9F8', borderColor:'#E5EAE8'}}>
+                  <Icon name="BookOpen" size={12} style={{color:'#8CBDB3'}}/>
+                  <span className="text-xs num-tabular" style={{color:'#2F4F4F'}}>{lectures.length}</span>
+                  <span className="text-xs" style={{color:'#2F4F4F', opacity:0.65, fontWeight:500}}>차시</span>
+                </div>
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border"
+                  style={{backgroundColor:'#FEF5EC', borderColor:'#F5D1A9'}}>
+                  <Icon name="FileText" size={12} style={{color:'#E67E22'}}/>
+                  <span className="text-xs num-tabular" style={{color:'#E67E22'}}>376</span>
+                  <span className="text-xs" style={{color:'#E67E22', opacity:0.85, fontWeight:500}}>문제</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* ── 2-column layout ── */}
+          <div className="flex" style={{height:'calc(100vh - 65px)'}}>
+
+            {/* ── 좌측 사이드바 (항상 표시) ── */}
+            <aside className="flex flex-col bg-white border-r border-gray-100 flex-shrink-0"
+              style={{width:'288px'}}>
+
+              {/* 사이드바 헤더 */}
+              <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                <h2 className="text-base" style={{color:'#2F4F4F', fontWeight:700}}>차시 목록</h2>
+                <span className="px-2 py-0.5 rounded-full text-xs num-tabular"
+                  style={{backgroundColor:'#F5F9F8', color:'#2F4F4F'}}>{lectures.length}</span>
+              </div>
+
+              {/* 검색창 */}
+              <div className="px-5 pb-3">
+                <div className="relative">
+                  <Icon name="Search" size={14} style={{color:'#8CBDB3', position:'absolute', left:'14px', top:'50%', transform:'translateY(-50%)'}}/>
+                  <input type="text" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
+                    placeholder="차시, 교수명, 토픽 검색…"
+                    className="w-full outline-none transition"
+                    style={{paddingLeft:'36px', paddingRight:'12px', paddingTop:'10px', paddingBottom:'10px',
+                      borderRadius:'16px', fontSize:'12px', backgroundColor:'#F5F9F8', color:'#2F4F4F',
+                      fontWeight:500, border:'none'}}/>
+                </div>
+              </div>
+
+
+              {/* 차시 목록 */}
+              <div className="sidebar-scroll flex-1 overflow-y-auto px-3 pb-4">
+                {filtered.map((it, idx) => {
+                  const isSel = selectedLecture === it.id;
+                  const num = lectures.indexOf(it) + 1;
+                  return (
+                    <React.Fragment key={it.id}>
+                      <button onClick={() => setSelectedLecture(it.id)}
+                        className="w-full text-left transition"
+                        style={{padding:'12px', borderRadius:'16px',
+                          backgroundColor:isSel?'#F5F9F8':'transparent',
+                          border:isSel?'1px solid #8CBDB3':'1px solid transparent'}}>
+                        <div className="flex items-start gap-2">
+                          {isSel && <div style={{width:4, alignSelf:'stretch', borderRadius:'9999px', backgroundColor:'#E67E22', flexShrink:0}}/>}
+                          <div className="flex-1" style={{minWidth:0}}>
+                            <div className="num-tabular mb-0.5" style={{fontSize:'10px', color:'#8CBDB3', fontWeight:800}}>{String(num).padStart(2,'0')}</div>
+                            <div className="truncate text-sm mb-1.5" style={{color:'#2F4F4F', fontWeight:700, lineHeight:1.3}}>{it.title}</div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-flex items-center gap-1" style={{fontSize:'10px', color:'#2F4F4F', opacity:0.65, fontWeight:500}}>
+                                <Icon name="User" size={9}/>{it.professor} 교수님
+                              </span>
+                              <span className="num-tabular" style={{fontSize:'10px', color:'#2F4F4F', opacity:0.55, fontWeight:500}}>{it.years}</span>
+                              <span className="px-1.5 py-0.5 rounded-md num-tabular" style={{fontSize:'10px', backgroundColor:'#E8F4EF', color:'#5C9982', fontWeight:700}}>{filterQForLecture(it.id).length}문제</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                      {idx < filtered.length - 1 && (
+                        <div style={{height:'1px', backgroundColor:'#EDF1EF', margin:'0 12px'}}/>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="text-center py-10 text-sm" style={{color:'#2F4F4F', opacity:0.5, fontWeight:500}}>검색 결과가 없습니다</div>
+                )}
+              </div>
+            </aside>
+
+            {/* ── 우측 메인 콘텐츠 ── */}
+            <main ref={mainRef} className="flex-1 overflow-y-auto sidebar-scroll">
+              <div className="max-w-3xl mx-auto px-5 md:px-8 py-6">
+
+                {/* 상단 탭 3개 */}
+                <div className="flex items-center gap-2 mb-6 flex-wrap">
+                  {/* 기출 탭 */}
+                  <button onClick={()=>{setActiveTab('past'); handleReset();}}
+                    className="flex items-center gap-1.5 transition"
+                    style={{padding:'10px 20px', borderRadius:'16px', fontSize:'14px', fontWeight:700,
+                      backgroundColor:activeTab==='past'?'#2F4F4F':'#FFFFFF',
+                      color:activeTab==='past'?'#FFFFFF':'#2F4F4F',
+                      border:activeTab==='past'?'1px solid #2F4F4F':'1px solid #E5EAE8'}}>
+                    <Icon name="BookOpen" size={14}/>기출
+                  </button>
+                  {/* 3 step 모의고사 — 비활성 */}
+                  <button disabled aria-disabled="true" title="베타테스트 이후 추가 예정"
+                    className="flex items-center gap-1.5"
+                    style={{padding:'10px 20px', borderRadius:'16px', fontSize:'14px', fontWeight:700,
+                      backgroundColor:'#FAFBFB', color:'#9CA3AF',
+                      border:'1px dashed #D3D9D4', cursor:'not-allowed'}}>
+                    <Icon name="Lock" size={12}/>3 step 모의고사
+                    <span style={{marginLeft:'4px', padding:'2px 6px', borderRadius:'6px', fontSize:'10px',
+                      backgroundColor:'#F0F0F0', color:'#9CA3AF', fontWeight:700}}>베타 이후 추가</span>
+                  </button>
+                  {/* 학습 가이드 — 비활성 */}
+                  <button disabled aria-disabled="true" title="베타테스트 이후 추가 예정"
+                    className="flex items-center gap-1.5"
+                    style={{padding:'10px 20px', borderRadius:'16px', fontSize:'14px', fontWeight:700,
+                      backgroundColor:'#FAFBFB', color:'#9CA3AF',
+                      border:'1px dashed #D3D9D4', cursor:'not-allowed'}}>
+                    <Icon name="Lock" size={12}/>학습 가이드
+                    <span style={{marginLeft:'4px', padding:'2px 6px', borderRadius:'6px', fontSize:'10px',
+                      backgroundColor:'#F0F0F0', color:'#9CA3AF', fontWeight:700}}>베타 이후 추가</span>
+                  </button>
+                </div>
+
+                {/* ── 탭: 기출 (최신순 스크롤) ── */}
+                {activeTab === 'past' && (
+                  <div>
+                    {/* 문제 수 뱃지 */}
+                    {!loadingQ && sessionQuestions.length > 0 && (
+                      <div className="flex items-center gap-2 mb-5">
+                        <span className="px-3 py-1 rounded-full text-xs num-tabular"
+                          style={{backgroundColor:'#F5F9F8', color:'#2F4F4F', fontWeight:700, border:'1px solid #E5EAE8'}}>
+                          총 {sessionQuestions.length}문제
+                        </span>
+                        <span className="text-xs" style={{color:'#9CA3AF', fontWeight:500}}>최신순 정렬</span>
+                      </div>
+                    )}
+
+                    {/* 로딩 */}
+                    {loadingQ && (
+                      <div className="text-center py-16">
+                        <div className="ll-pulse text-sm" style={{color:'#8CBDB3', fontWeight:500}}>문제 불러오는 중…</div>
+                      </div>
+                    )}
+
+                    {/* 문제 없음 */}
+                    {!loadingQ && sessionQuestions.length === 0 && (
+                      <div className="text-center py-16 rounded-3xl border border-dashed" style={{borderColor:'#D3D9D4'}}>
+                        <div style={{color:'#D3D9D4', margin:'0 auto 8px', display:'flex', justifyContent:'center'}}>
+                          <Icon name="BookOpen" size={28}/>
+                        </div>
+                        <div className="text-sm" style={{color:'#9CA3AF', fontWeight:500}}>이 차시에 해당하는 기출문제가 없습니다</div>
+                      </div>
+                    )}
+
+                    {/* 전체 문제 스크롤 목록 */}
+                    {sessionQuestions.map(q => (
+                      <PastQuestionCard key={q.id} question={q}/>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── 탭: 3 step 모의고사 ── */}
+                {activeTab === 'mock' && (
+                  <div className="text-center py-16 rounded-3xl border border-dashed" style={{borderColor:'#D3D9D4'}}>
+                    <div style={{display:'flex', justifyContent:'center', marginBottom:12}}>
+                      <div style={{width:52, height:52, borderRadius:18, backgroundColor:'#F2F4F4', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                        <Icon name="Lock" size={24} style={{color:'#B0B8B4'}}/>
+                      </div>
+                    </div>
+                    <div className="text-base" style={{color:'#2F4F4F', fontWeight:700, marginBottom:6}}>3 step 모의고사</div>
+                    <div className="text-sm" style={{color:'#9CA3AF', fontWeight:500, marginBottom:16}}>베타테스트 이후 제공됩니다</div>
+                    <div style={{display:'inline-flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:9999,
+                      backgroundColor:'#F5F9F8', border:'1px solid #E5EAE8'}}>
+                      <Icon name="AlertCircle" size={12} style={{color:'#8CBDB3'}}/>
+                      <span style={{fontSize:12, color:'#2F4F4F', fontWeight:500}}>준비 중입니다. 조금만 기다려 주세요.</span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+
+    /* ════════════════════════════════════════
+       LANDING PAGE
+    ════════════════════════════════════════ */
+    function Landing({onStart}) {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [count, setCount] = useState(0);
+      const [agreed, setAgreed] = useState(false);
+
+      const handleAgree = (checked) => {
+        setAgreed(checked);
+        if (checked) localStorage.setItem('ll_agreed', '1');
+        else localStorage.removeItem('ll_agreed');
+      };
+      const [showHeaderTooltip, setShowHeaderTooltip] = useState(false);
+
+      useEffect(() => {
+        const target=542, dur=1800, start=performance.now();
+        let id;
+        const tick = (now) => {
+          const p = Math.min((now-start)/dur, 1);
+          setCount(Math.floor((1-Math.pow(1-p,3))*target));
+          if (p < 1) id = requestAnimationFrame(tick); else setCount(target);
+        };
+        id = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(id);
+      }, []);
+
+      const bgLogos = [
+        {top:'6%',left:'5%',size:42,opacity:0.08,rotate:-15},{top:'14%',right:'8%',size:64,opacity:0.06,rotate:14},
+        {top:'28%',left:'3%',size:32,opacity:0.08,rotate:22},{top:'36%',right:'4%',size:76,opacity:0.05,rotate:-18},
+        {top:'48%',left:'10%',size:40,opacity:0.07,rotate:8},{top:'58%',right:'14%',size:52,opacity:0.06,rotate:-25},
+        {top:'70%',left:'6%',size:36,opacity:0.07,rotate:12},{top:'80%',right:'9%',size:48,opacity:0.06,rotate:-10},
+        {top:'18%',left:'38%',size:28,opacity:0.06,rotate:30},{top:'42%',left:'42%',size:36,opacity:0.05,rotate:-8},
+        {top:'88%',left:'30%',size:44,opacity:0.07,rotate:16},{top:'92%',right:'28%',size:30,opacity:0.06,rotate:-22},
+      ];
+
+      return (
+        <div className="ll-root min-h-screen bg-white">
+          {/* HEADER */}
+          <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
+            <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-2.5"><Logo size={36}/>
+                <span className="text-xl" style={{color:'#2F4F4F',fontWeight:700}}>LectureLink</span>
+              </div>
+              <nav className="hidden md:flex items-center gap-8">
+                <a href="#features" className="text-sm hover:opacity-60 transition" style={{color:'#2F4F4F',fontWeight:500}}>기능 소개</a>
+                <div className="relative"
+                  onMouseEnter={()=>{if(!agreed)setShowHeaderTooltip(true)}}
+                  onMouseLeave={()=>setShowHeaderTooltip(false)}>
+                  <button
+                    onClick={agreed?onStart:undefined}
+                    className="px-5 py-2.5 rounded-full text-sm text-white transition hover:shadow-lg hover:-translate-y-0.5"
+                    style={{backgroundColor:agreed?'#2F4F4F':'#B0BEC5',fontWeight:700,cursor:agreed?'pointer':'default'}}>
+                    시작하기
+                  </button>
+                  {showHeaderTooltip&&!agreed&&(
+                    <div className="absolute right-0 top-full mt-2 text-white text-xs px-3 py-2 rounded-xl whitespace-nowrap shadow-lg z-50"
+                      style={{backgroundColor:'#2F4F4F',fontWeight:500}}>
+                      먼저 이용약관에 동의해주세요
+                    </div>
+                  )}
+                </div>
+              </nav>
+              <button className="md:hidden" onClick={()=>setMenuOpen(!menuOpen)} style={{color:'#2F4F4F'}}><Icon name={menuOpen?'X':'Menu'} size={24}/></button>
+            </div>
+            {menuOpen&&(
+              <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 flex flex-col gap-4">
+                <a href="#features" className="text-sm" style={{color:'#2F4F4F',fontWeight:500}}>기능 소개</a>
+                <button onClick={agreed?onStart:undefined} className="w-full py-2.5 rounded-full text-sm text-white" style={{backgroundColor:agreed?'#2F4F4F':'#B0BEC5',fontWeight:700,cursor:agreed?'pointer':'default'}}>
+                  {agreed?'시작하기':'약관 동의 후 시작 가능'}
+                </button>
+              </div>
+            )}
+          </header>
+
+          {/* HERO */}
+          <section className="relative overflow-hidden bg-white">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {bgLogos.map((lg,i)=>(
+                <div key={i} className="absolute" style={{top:lg.top,...(lg.left?{left:lg.left}:{}), ...(lg.right?{right:lg.right}:{}),opacity:lg.opacity,transform:`rotate(${lg.rotate}deg)`}}>
+                  <Logo size={lg.size}/>
+                </div>
+              ))}
+            </div>
+            <div className="relative max-w-3xl mx-auto px-6 pt-20 pb-24">
+              <div className="flex flex-col items-center gap-8 mb-12">
+                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border" style={{backgroundColor:'#F5F9F8',borderColor:'#8CBDB3'}}>
+                  <span className="text-xs" style={{color:'#2F4F4F',fontWeight:700}}>베타 테스트 진행 중</span>
+                </div>
+                <h1 className="text-5xl md:text-6xl text-center" style={{color:'#2F4F4F',lineHeight:1.25}}>
+                  <span style={{color:'#E67E22'}}>야마</span>와 <span style={{color:'#E67E22'}}>KMLE</span>를<br/>
+                  <span className="ui-heavy" style={{color:'#8CBDB3',fontSize:'1.05em'}}>AI</span>로 단일화
+                </h1>
+                <p className="text-lg text-center" style={{color:'#2F4F4F',opacity:0.75,fontWeight:500}}>교수님별 강의록 기반 맞춤형 AI 튜터</p>
+              </div>
+              <div className="max-w-xl mx-auto">
+                {/* 약관 */}
+                <div className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-2 px-1">
+                    <Icon name="Shield" size={12} style={{color:'#8CBDB3'}}/>
+                    <span style={{fontSize:'11px',color:'#2F4F4F',opacity:0.7,fontWeight:700,letterSpacing:'0.02em'}}>이용약관 · 반드시 확인해주세요</span>
+                  </div>
+                  <div className="terms-scroll overflow-y-auto p-5 rounded-2xl border text-xs leading-relaxed" style={{backgroundColor:'#F7F8F7',borderColor:'#E5EAE8',color:'#2F4F4F',height:'14rem'}}>
+                    <div style={{fontWeight:700,fontSize:'13px',marginBottom:'4px'}}>[LectureLink] 베타 서비스 이용약관</div>
+                    <div style={{fontSize:'10px',opacity:0.65,fontWeight:500,paddingBottom:'12px',marginBottom:'16px',borderBottom:'1px solid #E5EAE8'}}>시행일: 2026년 5월 4일 · 베타 기간 한정 적용</div>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제1조 (목적)</div>
+                    <p style={{marginBottom:'12px'}}>본 약관은 [LectureLink] (이하 "서비스")이 운영하는 학습 자료 공유 웹사이트의 베타 테스트 기간 중 이용에 관한 기본적인 사항을 규정합니다.</p>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제2조 (베타 서비스 범위 및 대상)</div>
+                    <ol style={{listStyleType:'decimal',paddingLeft:'20px',marginBottom:'12px'}}>
+                      <li style={{marginBottom:'4px'}}>본 서비스는 현재 베타 테스트 단계로, 초대받은 특정 학번 학생에게만 제한적으로 제공됩니다.</li>
+                      <li style={{marginBottom:'4px'}}>베타 기간 중 서비스 내용, 기능, 약관은 사전 고지 없이 변경될 수 있습니다.</li>
+                      <li style={{marginBottom:'4px'}}>본 서비스는 비영리·학습 목적으로만 운영되며, 상업적 이용을 일체 금지합니다.</li>
+                    </ol>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제3조 (서비스 내 자료의 성격)</div>
+                    <ol style={{listStyleType:'decimal',paddingLeft:'20px',marginBottom:'12px'}}>
+                      <li style={{marginBottom:'4px'}}>서비스 내 제공되는 강의록, 기출문제 등 학습 자료는 학습 편의를 위해 한시적으로 제공되는 것으로, 저작권은 원 제작자(교수 등)에게 귀속됩니다.</li>
+                      <li style={{marginBottom:'4px'}}>운영자는 저작권자의 요청이 있을 경우 해당 자료를 즉시 삭제합니다.</li>
+                    </ol>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제4조 (이용자의 의무 — 자료 유출 금지)</div>
+                    <ol style={{listStyleType:'decimal',paddingLeft:'20px',marginBottom:'12px'}}>
+                      <li style={{marginBottom:'4px'}}>이용자는 서비스 내 자료를 개인 학습 목적 외에 사용할 수 없습니다.</li>
+                      <li style={{marginBottom:'8px'}}>다음 각 호의 행위를 엄격히 금지합니다.<ol style={{listStyleType:'lower-roman',paddingLeft:'20px',marginTop:'4px'}}>
+                        <li>서비스 내 자료를 외부 플랫폼, SNS, 커뮤니티 등에 유포·공유하는 행위</li>
+                        <li>자료를 복제·재배포·판매하는 행위</li>
+                        <li>자료를 상업적 목적으로 이용하는 행위</li>
+                        <li>서비스 접근 계정·링크를 타인에게 양도하는 행위</li>
+                      </ol></li>
+                      <li>위 금지 행위는 저작권법 위반에 해당할 수 있으며, 이로 인한 법적 책임은 해당 이용자에게 있습니다.</li>
+                    </ol>
+                    <div style={{backgroundColor:'#FFF4E6',border:'1px solid #F5D1A9',borderRadius:'12px',padding:'12px',marginBottom:'12px',display:'flex',gap:'8px',alignItems:'flex-start'}}>
+                      <Icon name="AlertTriangle" size={14} style={{color:'#E67E22',flexShrink:0,marginTop:'2px'}}/>
+                      <div style={{fontSize:'11px',lineHeight:'1.6',color:'#2F4F4F',fontWeight:500}}>
+                        서비스 내 자료를 무단으로 외부에 유출할 경우, 저작권법 제136조에 따라{' '}
+                        <span style={{fontWeight:700,color:'#E67E22'}}>5년 이하의 징역 또는 5천만 원 이하의 벌금</span>에 처해질 수 있습니다.
+                      </div>
+                    </div>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제5조 (운영자의 의무)</div>
+                    <ol style={{listStyleType:'decimal',paddingLeft:'20px',marginBottom:'12px'}}>
+                      <li style={{marginBottom:'4px'}}>운영자는 기술적 보호 조치를 취하기 위해 노력합니다.</li>
+                      <li style={{marginBottom:'4px'}}>저작권자로부터 자료 삭제 요청을 받은 경우 지체 없이 삭제합니다.</li>
+                      <li>저작권 관련 문의: <span style={{fontWeight:700}}>sixthmoon_04@naver.com</span></li>
+                    </ol>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제6조 (면책)</div>
+                    <ol style={{listStyleType:'decimal',paddingLeft:'20px',marginBottom:'12px'}}>
+                      <li style={{marginBottom:'4px'}}>본 서비스는 무료로 제공되며, 운영자는 이용으로 인한 손해에 대해 책임을 지지 않습니다.</li>
+                      <li>베타 테스트 기간 중 서비스는 예고 없이 중단될 수 있습니다.</li>
+                    </ol>
+                    <div style={{fontWeight:700,marginBottom:'4px'}}>제7조 (약관의 변경)</div>
+                    <p>본 약관은 베타 테스트 종료 후 정식 서비스 출시 시 전면 개정됩니다.</p>
+                  </div>
+                </div>
+                <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-2xl transition hover:bg-gray-50">
+                  <div style={{flexShrink:0,marginTop:'2px'}}>
+                    <input type="checkbox" checked={agreed} onChange={e=>handleAgree(e.target.checked)} style={{position:'absolute',opacity:0,width:0,height:0}}/>
+                    <div style={{width:20,height:20,borderRadius:5,border:`2px solid ${agreed?'#E67E22':'#C9D1CD'}`,backgroundColor:agreed?'#E67E22':'white',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
+                      {agreed&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                    </div>
+                  </div>
+                  <span className="text-xs leading-relaxed" style={{color:'#2F4F4F',fontWeight:500}}>
+                    <span style={{color:'#E67E22',fontWeight:700}}>[필수]</span> 위 약관을 모두 읽었으며, 자료 유출 금지 및 이용 조건에 동의합니다
+                  </span>
+                </label>
+                {!agreed && <div className="mt-3 text-center" style={{fontSize:'11px',color:'#9CA3AF',fontWeight:500}}>약관에 동의하시면 시작하기 버튼이 활성화됩니다</div>}
+                <div className="mt-4 mb-8">
+                  <button onClick={onStart} disabled={!agreed}
+                    className="w-full py-4 rounded-full flex items-center justify-center gap-2 transition"
+                    style={{backgroundColor:agreed?'#E67E22':'#D3D9D4',color:'white',fontWeight:700,
+                      cursor:agreed?'pointer':'not-allowed',border:'none',fontSize:'15px',
+                      boxShadow:agreed?'0 4px 20px rgba(230,126,34,0.35)':'none'}}>
+                    시작하기 <Icon name="ArrowRight" size={16}/>
+                  </button>
+                </div>
+                <div className="w-full bg-white border-2 border-dashed rounded-3xl p-5 flex items-center gap-4 transition cursor-pointer"
+                  style={{borderColor:'#D3D9D4'}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor='#8CBDB3';e.currentTarget.style.backgroundColor='#F5F9F8'}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor='#D3D9D4';e.currentTarget.style.backgroundColor='white'}}>
+                  <div className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center" style={{backgroundColor:'#F5F9F8'}}><UploadIcon size={36}/></div>
+                  <div className="flex-1">
+                    <div className="text-sm mb-1" style={{color:'#2F4F4F',fontWeight:700}}>내 강의록 업로드하고 분석하기</div>
+                    <div className="text-xs" style={{color:'#9CA3AF'}}>[베타테스트 이후 추가 예정]</div>
+                  </div>
+                  <Icon name="ArrowRight" size={18} style={{color:'#8CBDB3'}}/>
+                </div>
+                <div className="flex justify-center mt-4 mb-5">
+                  <a href="#" className="text-xs hover:opacity-70 transition" style={{color:'#2F4F4F',opacity:0.55,fontWeight:500}}>혹시 없는 강의록인가요? 직접 업로드하기 →</a>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* CORE FEATURES */}
+          <section id="features" className="py-20" style={{backgroundColor:'#FAFBFB'}}>
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center mb-16">
+                <div className="inline-block px-4 py-1.5 rounded-full mb-4" style={{backgroundColor:'#F5F9F8'}}>
+                  <span style={{fontSize:'12px',color:'#8CBDB3',fontWeight:700,letterSpacing:'0.05em'}}>CORE FEATURES</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl mb-5" style={{color:'#2F4F4F',lineHeight:1.25}}>의대생의 시간을 설계하는<br/><span style={{color:'#E67E22'}}>3가지</span> 엔진</h2>
+                <p className="text-lg max-w-2xl mx-auto" style={{color:'#2F4F4F',opacity:0.7,fontWeight:500}}>흩어진 학습 자료를 정밀하게 꿰어 내신과 KMLE를 <span style={{color:'#E67E22',fontWeight:700}}>동시에</span> 잡습니다.</p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                {/* 카드 1: 자동 매핑 */}
+                <div className="bg-white rounded-3xl p-8 transition hover:shadow-xl hover:-translate-y-1 border border-gray-100">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{backgroundColor:'#8CBDB3'}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-xl mb-3" style={{color:'#2F4F4F',whiteSpace:'pre-line',lineHeight:1.4}}>{'강의록 · 기출 · KMLE\n자동 매핑'}</h3>
+                  <p className="text-sm mb-6" style={{color:'#2F4F4F',opacity:0.7,fontWeight:400}}>학교 야마 PDF를 올리면 AI가 관련 기출과 KMLE 문항을 단원별로 연결해 드립니다.</p>
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8CBDB3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span className="text-xs" style={{color:'#2F4F4F',fontWeight:700}}>단원별 자동 연결</span>
+                  </div>
+                </div>
+                {/* 카드 2: 유사 문제 생성 */}
+                <div className="bg-white rounded-3xl p-8 transition hover:shadow-xl hover:-translate-y-1 border border-gray-100">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{backgroundColor:'#E67E22'}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-xl mb-3" style={{color:'#2F4F4F',whiteSpace:'pre-line',lineHeight:1.4}}>{'AI 오답 기반\n유사 문제 생성'}</h3>
+                  <p className="text-sm mb-6" style={{color:'#2F4F4F',opacity:0.7,fontWeight:400}}>틀린 문제의 개념을 분석해 같은 약점을 찌르는 변형 문제를 만들어 드립니다.</p>
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8CBDB3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span className="text-xs" style={{color:'#2F4F4F',fontWeight:700}}>개념 · 증례 · 임상추론</span>
+                  </div>
+                </div>
+                {/* 카드 3: 모의고사 */}
+                <div className="bg-white rounded-3xl p-8 transition hover:shadow-xl hover:-translate-y-1 border border-gray-100">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{backgroundColor:'#2F4F4F'}}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <circle cx="12" cy="12" r="6"/>
+                      <circle cx="12" cy="12" r="2"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-xl mb-3" style={{color:'#2F4F4F',whiteSpace:'pre-line',lineHeight:1.4}}>{'실전 대비\n최종 모의고사'}</h3>
+                  <p className="text-sm mb-6" style={{color:'#2F4F4F',opacity:0.7,fontWeight:400}}>학교 시험 패턴과 KMLE 출제 경향을 반영한 맞춤 모의고사를 제공합니다.</p>
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8CBDB3" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span className="text-xs" style={{color:'#2F4F4F',fontWeight:700}}>실시간 성적 분석 리포트</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* FOOTER */}
+          <footer className="border-t border-gray-100">
+            <div className="max-w-7xl mx-auto px-6 py-10">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="flex items-center gap-2.5"><Logo size={32}/>
+                  <div>
+                    <div style={{color:'#2F4F4F',fontWeight:700}}>LectureLink</div>
+                    <div className="text-xs" style={{color:'#2F4F4F',opacity:0.6,fontWeight:500}}>의대생 AI 학습 솔루션</div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-6 text-xs" style={{color:'#2F4F4F',opacity:0.7,fontWeight:500}}>
+                  {['서비스 소개','이용약관','개인정보처리방침','문의하기'].map((t,i)=><a key={i} href="#" className="hover:opacity-100">{t}</a>)}
+                </div>
+              </div>
+              <div className="mt-8 pt-6 border-t flex flex-col md:flex-row justify-between gap-2 text-xs" style={{borderColor:'#F0F0F0',color:'#2F4F4F',opacity:0.6,fontWeight:500}}>
+                <div>© <span className="num-tabular">2026</span> LectureLink. All rights reserved.</div>
+                <div>Made with care for future doctors.</div>
+              </div>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
+
+    /* ════════════════════════════════════════
+       ROOT — 페이지 라우터
+    ════════════════════════════════════════ */
+    function App() {
+      const [page, setPage] = useState(() =>
+        localStorage.getItem('ll_agreed') === '1' ? 'viewer' : 'landing'
+      );
+      useEffect(() => { window.scrollTo(0, 0); }, [page]);
+      if (page === 'viewer') return <Viewer onBack={() => setPage('landing')}/>;
+      return <Landing onStart={() => setPage('viewer')}/>;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>
