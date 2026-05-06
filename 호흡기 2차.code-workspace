@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "yamashare",
+			"uri": "azurestorage:/yamashare?resourceId=/subscriptions/0c81fc64-d851-4ac1-9649-bad8b07ca874/resourceGroups/lecture-link/providers/Microsoft.Storage/storageAccounts/ddoli1545&name=yamashare"
+		}
+	],
+	"settings": {}
+}

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 /Users/ddoli1545/Desktop/test/organize_questions.py)",
+      "Bash(lsof -ti:8080)",
+      "Bash(xargs kill *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8080/pdf/lecture/1223_COPD.pdf\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:8080/pdf/questions/1223_COPD.pdf\")",
+      "Bash(open http://localhost:8080)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3)",
+      "Bash(python3 -c \"import anthropic; print\\('anthropic ok'\\)\")",
+      "Bash(pip3 install *)",
+      "Read(//System/Library/Fonts/**)",
+      "Read(//Library/Fonts/**)",
+      "Bash(grep -v \".py$\")",
+      "Bash(python3 -c \"import anthropic, pdfplumber, fpdf; print\\('all imports OK'\\)\")"
+    ]
+  }
+}

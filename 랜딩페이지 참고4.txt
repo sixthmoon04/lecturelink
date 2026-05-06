@@ -1,0 +1,706 @@
+// LectureLink 학습 뷰어 (Study Viewer) — Full Source
+// Stack: React + Tailwind CSS + lucide-react
+// 다른 Claude 세션에서 이 코드를 베이스로 기능을 덧붙이세요.
+// UI/UX 토큰과 인터랙션 패턴은 반드시 유지해 주세요.
+//
+// 핵심 정책:
+// - 사이드바는 항상 표시 (모바일 포함)
+// - 학습 가이드 탭은 클릭 불가 (베타 이후 추가)
+// - 시간 제한/타이머 절대 추가하지 않음
+// - 모의고사는 서브탭 클릭 시 즉시 문제 표시 (별도 리스트 화면 X)
+
+import React, { useState } from 'react';
+import {
+  Menu, X, ArrowRight, ChevronRight, ChevronLeft,
+  Search, BookOpen, GraduationCap, User, FileText,
+  Check, X as XIcon, Lightbulb, Sparkles, Clock,
+  Target, Brain, Microscope, AlertCircle, Lock, Play
+} from 'lucide-react';
+
+export default function LectureLinkViewer() {
+  // ==================== State ====================
+  const [activeTab, setActiveTab] = useState('past');           // 'past' | 'mock'
+  const [examType, setExamType] = useState('standard');         // 'standard' | 'advanced' | 'detailed'
+  const [filterMode, setFilterMode] = useState('date');         // 'date' | 'professor'
+  const [selectedLecture, setSelectedLecture] = useState('ards');
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [graded, setGraded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // ==================== SVG Components ====================
+  const Logo = ({ size = 32 }) => (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="2" width="36" height="36" rx="10" fill="#8CBDB3"/>
+      <path d="M13 14 Q13 11 16 11 L19 11 Q22 11 22 14 L22 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+      <path d="M27 26 Q27 29 24 29 L21 29 Q18 29 18 26 L18 23" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+      <circle cx="20" cy="20" r="2.2" fill="#E67E22"/>
+    </svg>
+  );
+
+  // ==================== Mock Data (실서비스에서는 API로 교체) ====================
+  const lectures = [
+    {
+      date: '12/30',
+      items: [
+        { id: 'cause', title: '폐종양의 원인, 증상 및 진단', professor: '박순효', period: '1교시', years: '2015-2025년', count: 47 },
+        { id: 'pathology', title: '폐종양의 병기 및 치료', professor: '박순효', period: '2교시', years: '2016-2025년', count: 22 },
+        { id: 'pediatric', title: '소아 호흡기질환 (심화)', professor: '김가은', period: '3,4교시', years: '2019-2025년', count: 36 },
+      ]
+    },
+    {
+      date: '12/31',
+      items: [
+        { id: 'nontumor', title: '비종양성 폐질환의 외과적 치료', professor: '금동윤', period: '1교시', years: '2017-2025년', count: 12 },
+        { id: 'surgical', title: '폐종양의 외과적 치료', professor: '금동윤', period: '2교시', years: '2015-2025년', count: 18 },
+        { id: 'critical', title: '중환자의학', professor: '박재석', period: '3교시', years: '2016-2025년', count: 38 },
+        { id: 'ards', title: '급성호흡곤란증 (ARDS)', professor: '박재석', period: '4교시', years: '2016-2025년', count: 16 },
+        { id: 'lungcancer', title: '폐암 조기진단', professor: '김태훈', period: '5교시', years: '2015-2023년', count: 21 },
+      ]
+    },
+    {
+      date: '01/02',
+      items: [
+        { id: 'asthma', title: '천식과 만성폐쇄성폐질환', professor: '이주영', period: '1교시', years: '2018-2025년', count: 28 },
+      ]
+    }
+  ];
+
+  const allLectures = lectures.flatMap(g => g.items);
+  const filtered = lectures.map(g => ({
+    ...g,
+    items: g.items.filter(it =>
+      !searchQuery ||
+      it.title.includes(searchQuery) ||
+      it.professor.includes(searchQuery) ||
+      it.period.includes(searchQuery)
+    )
+  })).filter(g => g.items.length > 0);
+
+  // 샘플 문제 (실서비스에서는 selectedLecture 기반으로 API 호출)
+  const question = {
+    year: '2021년',
+    code: 'Q26',
+    professor: '박재석',
+    topic: '급성호흡곤란증후군',
+    body: '평소 건강하던 53세 남자가 숨이차서 왔다. 6일전 교통사고로 인한 다발성 골절로 타병원 입원 중 급격하게 호흡곤란이 악화되어 기도삽관상태로 응급실로 내원하였다. 혈압 130/70mmHg, 맥박 110회/분, 호흡 30회/분 체온 37도 이었다. 의식은 감소되어 있었고, 양쪽 가슴에서 거품소리가 들렸다. 인공호흡기 설정을 FiO2 0.5, PEEP 8cmH2O 로 시행한 동맥혈 가스분석결과는 pH 7.43, PaCO2 35mmHg, PaO2 80mmHg, HCO3 - 20mEq/L 이었다. 심초음파에서는 별다른 이상이 없었고, 흉부 X-선 사진은 다음과 같다. 이 환자 진단으로 가장 가능성이 높은 것은?',
+    choices: [
+      { id: 1, text: '폐렴' },
+      { id: 2, text: '폐색전증' },
+      { id: 3, text: '폐부종' },
+      { id: 4, text: '급성호흡곤란증후군' },
+      { id: 5, text: '재성유미증의 급성악화' },
+    ],
+    answer: 4,
+    explanation: {
+      summary: '다발성 골절과 같은 비-심인성 원인 + 양측 폐 침윤 + P/F ratio < 300 → ARDS 진단 기준에 부합합니다.',
+      points: [
+        '베를린 정의: 1주 이내 발생, 양측 폐 침윤, 심부전으로 설명되지 않음',
+        'P/F ratio = PaO2/FiO2 = 80/0.5 = 160 → 중등도(Moderate) ARDS',
+        '심초음파 정상 → 심인성 폐부종 배제',
+        '외상 후 발생 패턴은 ARDS의 전형적 임상 양상',
+      ],
+    }
+  };
+
+  // 모의고사 옵션 (시간 제한 표시 없음)
+  const examOptions = [
+    {
+      id: 'standard',
+      name: '기출형',
+      icon: FileText,
+      color: '#8CBDB3',
+      bg: '#F5F9F8',
+      desc: '실제 출제 패턴 기반의 표준 모의고사',
+      total: 3,
+      used: 1,
+      betaNote: false,
+    },
+    {
+      id: 'advanced',
+      name: '심화형',
+      icon: Brain,
+      color: '#E67E22',
+      bg: '#FEF5EC',
+      desc: '난이도 높은 임상추론 문제 위주',
+      total: 1,
+      used: 0,
+      betaNote: true,
+    },
+    {
+      id: 'detailed',
+      name: '지엽형',
+      icon: Microscope,
+      color: '#2F4F4F',
+      bg: '#F2F4F4',
+      desc: '디테일과 예외사항까지 꼼꼼하게',
+      total: 1,
+      used: 0,
+      betaNote: true,
+    },
+  ];
+
+  // ==================== Handlers ====================
+  const isCorrect = graded && selectedAnswer === question.answer;
+  const isWrong = graded && selectedAnswer !== null && selectedAnswer !== question.answer;
+
+  const handleGrade = () => {
+    if (selectedAnswer !== null) setGraded(true);
+  };
+
+  const handleReset = () => {
+    setSelectedAnswer(null);
+    setGraded(false);
+  };
+
+  // ==================== Render ====================
+  return (
+    <>
+      <style>{`
+        @font-face {
+          font-family: 'LINESeedKR';
+          font-weight: 400;
+          src: url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Rg.woff2') format('woff2');
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'LINESeedKR';
+          font-weight: 700;
+          src: url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Bd.woff2') format('woff2');
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'LINESeedKR';
+          font-weight: 800;
+          src: url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Bd.woff2') format('woff2');
+          font-display: swap;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@100;200;300;400;500;600;700&display=swap');
+
+        .ll-root, .ll-root * {
+          font-family: 'LINESeedKR', 'IBM Plex Sans KR', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+          letter-spacing: -0.03em;
+        }
+        .ll-root h1, .ll-root h2, .ll-root h3 {
+          font-weight: 700;
+          letter-spacing: -0.05em;
+        }
+        .ll-root .num-tabular {
+          font-feature-settings: "tnum";
+          font-weight: 800;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .accordion-content {
+          animation: slideDown 0.4s ease-out forwards;
+        }
+        .sidebar-scroll::-webkit-scrollbar { width: 6px; }
+        .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #D3D9D4; border-radius: 3px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #8CBDB3; }
+      `}</style>
+
+      <div className="ll-root min-h-screen" style={{ backgroundColor: '#FAFBFB' }}>
+        {/* ==================== HEADER (sticky) ==================== */}
+        <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+          <div className="px-6 py-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button className="p-1.5 rounded-lg hover:bg-gray-50 transition" style={{ color: '#2F4F4F' }}>
+                <ChevronLeft size={18} />
+              </button>
+              <div className="flex items-center gap-2.5">
+                <Logo size={30} />
+                <div className="leading-tight">
+                  <div className="flex items-center gap-1.5 text-base" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                    <span style={{ color: '#E67E22' }}>호흡기 2차</span>
+                    <span>기출문제 뷰어</span>
+                  </div>
+                  <div className="text-[11px]" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 500 }}>
+                    2015-2025 역대 기출 · 차시별 분류
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border" style={{ backgroundColor: '#F5F9F8', borderColor: '#E5EAE8' }}>
+                <BookOpen size={12} style={{ color: '#8CBDB3' }} />
+                <span className="text-xs num-tabular" style={{ color: '#2F4F4F' }}>23</span>
+                <span className="text-xs" style={{ color: '#2F4F4F', opacity: 0.65, fontWeight: 500 }}>차시</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border" style={{ backgroundColor: '#FEF5EC', borderColor: '#F5D1A9' }}>
+                <FileText size={12} style={{ color: '#E67E22' }} />
+                <span className="text-xs num-tabular" style={{ color: '#E67E22' }}>376</span>
+                <span className="text-xs" style={{ color: '#E67E22', opacity: 0.85, fontWeight: 500 }}>문제</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* ==================== Main 2-column layout ==================== */}
+        <div className="flex" style={{ height: 'calc(100vh - 65px)' }}>
+          {/* ==================== Left Sidebar (always visible) ==================== */}
+          <aside className="flex flex-col w-72 lg:w-80 bg-white border-r border-gray-100 flex-shrink-0">
+            <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+              <h2 className="text-base" style={{ color: '#2F4F4F', fontWeight: 700 }}>차시 목록</h2>
+              <span className="px-2 py-0.5 rounded-full text-xs num-tabular" style={{ backgroundColor: '#F5F9F8', color: '#2F4F4F' }}>
+                {allLectures.length}
+              </span>
+            </div>
+
+            {/* 검색창 */}
+            <div className="px-5 pb-3">
+              <div className="relative">
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: '#8CBDB3' }} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="차시, 교수명, 토픽 검색…"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-2xl text-xs outline-none transition focus:bg-white"
+                  style={{ backgroundColor: '#F5F9F8', color: '#2F4F4F', fontWeight: 500 }}
+                />
+              </div>
+            </div>
+
+            {/* 필터 토글 (날짜별 / 교수별) */}
+            <div className="px-5 pb-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setFilterMode('date')}
+                  className="py-2 rounded-xl text-xs transition"
+                  style={{
+                    backgroundColor: filterMode === 'date' ? '#2F4F4F' : '#F5F9F8',
+                    color: filterMode === 'date' ? '#FFFFFF' : '#2F4F4F',
+                    fontWeight: 700,
+                  }}
+                >
+                  날짜별
+                </button>
+                <button
+                  onClick={() => setFilterMode('professor')}
+                  className="py-2 rounded-xl text-xs transition"
+                  style={{
+                    backgroundColor: filterMode === 'professor' ? '#2F4F4F' : '#F5F9F8',
+                    color: filterMode === 'professor' ? '#FFFFFF' : '#2F4F4F',
+                    fontWeight: 700,
+                  }}
+                >
+                  교수별
+                </button>
+              </div>
+            </div>
+
+            {/* 차시 그룹 리스트 */}
+            <div className="sidebar-scroll flex-1 overflow-y-auto px-3 pb-4">
+              {filtered.map((group, gi) => (
+                <div key={gi} className="mb-4">
+                  <div className="flex items-center gap-1.5 px-2 py-2">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#8CBDB3' }} />
+                    <span className="text-xs num-tabular" style={{ color: '#2F4F4F', opacity: 0.7 }}>
+                      {group.date}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    {group.items.map((it) => {
+                      const isSelected = selectedLecture === it.id;
+                      return (
+                        <button
+                          key={it.id}
+                          onClick={() => setSelectedLecture(it.id)}
+                          className="w-full text-left p-3 rounded-2xl transition group"
+                          style={{
+                            backgroundColor: isSelected ? '#F5F9F8' : 'transparent',
+                            border: isSelected ? '1px solid #8CBDB3' : '1px solid transparent',
+                          }}
+                        >
+                          <div className="flex items-start gap-2 mb-2">
+                            {isSelected && (
+                              <div className="w-1 self-stretch rounded-full mt-0.5" style={{ backgroundColor: '#E67E22' }} />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm mb-1.5 leading-snug truncate" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                                {it.title}
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#2F4F4F', opacity: 0.65, fontWeight: 500 }}>
+                                  <User size={9} />
+                                  {it.professor}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px]" style={{ backgroundColor: '#E8F0EF', color: '#2F4F4F', fontWeight: 700 }}>
+                                  {it.period}
+                                </span>
+                                <span className="text-[10px] num-tabular" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 500 }}>
+                                  {it.years}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md text-[10px] num-tabular" style={{ backgroundColor: '#E8F4EF', color: '#5C9982', fontWeight: 700 }}>
+                                  {it.count}문제
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {filtered.length === 0 && (
+                <div className="text-center py-10 text-sm" style={{ color: '#2F4F4F', opacity: 0.5, fontWeight: 500 }}>
+                  검색 결과가 없습니다
+                </div>
+              )}
+            </div>
+          </aside>
+
+          {/* ==================== Right Main Content ==================== */}
+          <main className="flex-1 overflow-y-auto sidebar-scroll">
+            <div className="max-w-3xl mx-auto px-5 md:px-8 py-6">
+              {/* Top Tabs (3개) */}
+              <div className="flex items-center gap-2 mb-6 flex-wrap">
+                <button
+                  onClick={() => setActiveTab('past')}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-2xl text-sm transition"
+                  style={{
+                    backgroundColor: activeTab === 'past' ? '#2F4F4F' : '#FFFFFF',
+                    color: activeTab === 'past' ? '#FFFFFF' : '#2F4F4F',
+                    border: activeTab === 'past' ? '1px solid #2F4F4F' : '1px solid #E5EAE8',
+                    fontWeight: 700,
+                  }}
+                >
+                  <BookOpen size={14} />
+                  기출
+                </button>
+                <button
+                  onClick={() => setActiveTab('mock')}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-2xl text-sm transition"
+                  style={{
+                    backgroundColor: activeTab === 'mock' ? '#2F4F4F' : '#FFFFFF',
+                    color: activeTab === 'mock' ? '#FFFFFF' : '#2F4F4F',
+                    border: activeTab === 'mock' ? '1px solid #2F4F4F' : '1px solid #E5EAE8',
+                    fontWeight: 700,
+                  }}
+                >
+                  <GraduationCap size={14} />
+                  3 step 모의고사
+                </button>
+                {/* 학습 가이드 — 비활성, 클릭 불가 */}
+                <button
+                  disabled
+                  aria-disabled="true"
+                  title="베타테스트 이후 추가 예정"
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-2xl text-sm cursor-not-allowed"
+                  style={{
+                    backgroundColor: '#FAFBFB',
+                    color: '#9CA3AF',
+                    border: '1px dashed #D3D9D4',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Lock size={12} />
+                  학습 가이드
+                  <span className="ml-1 px-1.5 py-0.5 rounded-md text-[10px]" style={{ backgroundColor: '#F0F0F0', color: '#9CA3AF', fontWeight: 700 }}>
+                    베타 이후 추가
+                  </span>
+                </button>
+              </div>
+
+              {/* ==================== TAB: 기출 ==================== */}
+              {activeTab === 'past' && (
+                <QuestionView
+                  question={question}
+                  selectedAnswer={selectedAnswer}
+                  setSelectedAnswer={setSelectedAnswer}
+                  graded={graded}
+                  setGraded={setGraded}
+                  isCorrect={isCorrect}
+                  handleGrade={handleGrade}
+                  handleReset={handleReset}
+                  bannerHeader={
+                    <>
+                      <span className="px-3 py-1 rounded-full text-xs bg-white num-tabular" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                        {question.year} {question.code}
+                      </span>
+                      <span className="text-xs text-white/90" style={{ fontWeight: 500 }}>
+                        [<span style={{ color: '#FBC07A', fontWeight: 700 }}>{question.professor}</span>] {question.topic}
+                      </span>
+                    </>
+                  }
+                  ctaColor="#E67E22"
+                  ctaLabel="채점하기"
+                  resetLabel="다시 풀기"
+                />
+              )}
+
+              {/* ==================== TAB: 3 step 모의고사 ==================== */}
+              {activeTab === 'mock' && (
+                <div>
+                  <div className="mb-5">
+                    <h2 className="text-xl md:text-2xl mb-2" style={{ color: '#2F4F4F' }}>
+                      <span style={{ color: '#E67E22' }}>3 step</span> 모의고사
+                    </h2>
+                    <p className="text-sm" style={{ color: '#2F4F4F', opacity: 0.65, fontWeight: 500 }}>
+                      난이도와 출제 스타일을 골라 실전처럼 연습해보세요
+                    </p>
+                  </div>
+
+                  {/* Sub Tabs (기출형 / 심화형 / 지엽형) */}
+                  <div className="flex flex-wrap items-center gap-2 mb-5">
+                    {examOptions.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => { setExamType(opt.id); handleReset(); }}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-2xl text-sm transition"
+                        style={{
+                          backgroundColor: examType === opt.id ? opt.color : '#FFFFFF',
+                          color: examType === opt.id ? '#FFFFFF' : '#2F4F4F',
+                          border: examType === opt.id ? `1px solid ${opt.color}` : '1px solid #E5EAE8',
+                          fontWeight: 700,
+                        }}
+                      >
+                        <opt.icon size={13} />
+                        {opt.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* 모드 상태 배너 (컴팩트) */}
+                  {(() => {
+                    const opt = examOptions.find(o => o.id === examType);
+                    const progress = (opt.used / opt.total) * 100;
+                    return (
+                      <div className="rounded-2xl p-4 mb-4 border" style={{ backgroundColor: opt.bg, borderColor: '#E5EAE8' }}>
+                        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: opt.color }}>
+                              <opt.icon size={14} className="text-white" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-sm" style={{ color: '#2F4F4F', fontWeight: 700 }}>{opt.name}</span>
+                                {opt.betaNote && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] bg-white" style={{ color: '#E67E22', fontWeight: 700 }}>
+                                    <AlertCircle size={9} />
+                                    베타 1회
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px]" style={{ color: '#2F4F4F', opacity: 0.6, fontWeight: 500 }}>
+                                {opt.desc}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px]" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 500 }}>
+                            <span>
+                              <span className="num-tabular" style={{ color: opt.color }}>{opt.used}</span>
+                              <span style={{ opacity: 0.5 }}> / </span>
+                              <span className="num-tabular">{opt.total}</span>
+                              <span className="ml-1">회 사용</span>
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: '#FFFFFF80' }}>
+                          <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor: opt.color }} />
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* 문제 카드 (모드 컬러 동기화) */}
+                  <QuestionView
+                    question={question}
+                    selectedAnswer={selectedAnswer}
+                    setSelectedAnswer={setSelectedAnswer}
+                    graded={graded}
+                    setGraded={setGraded}
+                    isCorrect={isCorrect}
+                    handleGrade={handleGrade}
+                    handleReset={handleReset}
+                    bannerHeader={
+                      <>
+                        <span className="px-3 py-1 rounded-full text-xs bg-white num-tabular" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                          문항 1 / 40
+                        </span>
+                        <span className="text-xs text-white/90" style={{ fontWeight: 500 }}>
+                          [<span style={{ color: '#FBC07A', fontWeight: 700 }}>{examOptions.find(o => o.id === examType).name}</span>] {question.topic}
+                        </span>
+                      </>
+                    }
+                    ctaColor={examOptions.find(o => o.id === examType).color}
+                    ctaLabel="제출하고 다음 문항"
+                    resetLabel="다음 문항 →"
+                  />
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ==================== Sub Component: QuestionView ====================
+// 기출 탭과 모의고사 탭에서 공통으로 사용하는 문제 카드 + 해설 카드
+function QuestionView({
+  question, selectedAnswer, setSelectedAnswer, graded, isCorrect,
+  handleGrade, handleReset, bannerHeader, ctaColor, ctaLabel, resetLabel
+}) {
+  return (
+    <div>
+      {/* Question Card */}
+      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden mb-4">
+        {/* 다크 그라디언트 배너 */}
+        <div className="px-6 py-4 flex items-center gap-3 flex-wrap" style={{ background: 'linear-gradient(135deg, #2F4F4F 0%, #3D6363 100%)' }}>
+          {bannerHeader}
+        </div>
+
+        {/* 문제 본문 */}
+        <div className="px-6 md:px-8 py-6">
+          <p className="text-sm md:text-[15px] leading-[1.85] mb-5" style={{ color: '#2F4F4F', fontWeight: 500 }}>
+            {question.body}
+          </p>
+
+          {/* 이미지 영역 */}
+          <div className="mb-6 flex justify-center">
+            <div className="w-full max-w-xs aspect-[3/4] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-2 p-6" style={{ borderColor: '#D3D9D4', backgroundColor: '#FAFBFB' }}>
+              <FileText size={28} style={{ color: '#8CBDB3', opacity: 0.6 }} />
+              <span className="text-xs text-center" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 500 }}>
+                흉부 X-선 사진<br />
+                <span className="text-[10px]">2021년 의학과1 호흡기</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 5지선다 */}
+          <div className="space-y-2">
+            {question.choices.map((c) => {
+              const isSelected = selectedAnswer === c.id;
+              const isAnswer = c.id === question.answer;
+              let bg = '#FFFFFF', border = '#E5EAE8', textColor = '#2F4F4F', numBg = '#F5F9F8', numColor = '#2F4F4F';
+              if (graded) {
+                if (isAnswer) {
+                  bg = '#F0F9F4'; border = '#76C7C0'; numBg = '#76C7C0'; numColor = '#FFFFFF';
+                } else if (isSelected) {
+                  bg = '#FDF0EE'; border = '#E67E22'; numBg = '#E67E22'; numColor = '#FFFFFF';
+                }
+              } else if (isSelected) {
+                bg = '#F5F9F8'; border = '#8CBDB3'; numBg = '#2F4F4F'; numColor = '#FFFFFF';
+              }
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => !graded && setSelectedAnswer(c.id)}
+                  disabled={graded}
+                  className="w-full flex items-center gap-3 p-3.5 rounded-2xl text-left transition"
+                  style={{
+                    backgroundColor: bg,
+                    border: `1.5px solid ${border}`,
+                    cursor: graded ? 'default' : 'pointer',
+                  }}
+                >
+                  <div className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-xs num-tabular transition" style={{ backgroundColor: numBg, color: numColor }}>
+                    {c.id}
+                  </div>
+                  <span className="flex-1 text-sm" style={{ color: textColor, fontWeight: 500 }}>
+                    {c.text}
+                  </span>
+                  {graded && isAnswer && <Check size={16} style={{ color: '#76C7C0' }} strokeWidth={3} />}
+                  {graded && isSelected && !isAnswer && <XIcon size={16} style={{ color: '#E67E22' }} strokeWidth={3} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 액션 바 */}
+        <div className="px-6 md:px-8 py-4 border-t flex items-center justify-between gap-3" style={{ borderColor: '#F0F0F0', backgroundColor: '#FAFBFB' }}>
+          {!graded ? (
+            <>
+              <span className="text-xs" style={{ color: '#2F4F4F', opacity: 0.6, fontWeight: 500 }}>
+                {selectedAnswer ? `${selectedAnswer}번 선택됨` : '답을 선택해주세요'}
+              </span>
+              <button
+                onClick={handleGrade}
+                disabled={!selectedAnswer}
+                className="px-6 py-2.5 rounded-full text-sm transition flex items-center gap-1.5"
+                style={{
+                  backgroundColor: selectedAnswer ? ctaColor : '#D3D9D4',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  cursor: selectedAnswer ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {ctaLabel}
+                <ArrowRight size={14} />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor: isCorrect ? '#76C7C0' : '#E67E22' }}>
+                  {isCorrect ? <Check size={14} className="text-white" strokeWidth={3} /> : <XIcon size={14} className="text-white" strokeWidth={3} />}
+                </div>
+                <span className="text-sm" style={{ color: isCorrect ? '#5BA89F' : '#E67E22', fontWeight: 700 }}>
+                  {isCorrect ? '정답입니다!' : `오답 — 정답은 ${question.answer}번`}
+                </span>
+              </div>
+              <button
+                onClick={handleReset}
+                className="px-5 py-2 rounded-full text-xs border transition hover:bg-gray-50"
+                style={{ color: '#2F4F4F', borderColor: '#D3D9D4', fontWeight: 700 }}
+              >
+                {resetLabel}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 해설 카드 (채점 후 슬라이드 다운) */}
+      {graded && (
+        <div className="accordion-content bg-white rounded-3xl border-2 overflow-hidden" style={{ borderColor: '#76C7C0' }}>
+          <div className="px-6 md:px-8 py-5 flex items-center gap-2" style={{ backgroundColor: '#F0FAF8' }}>
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#76C7C0' }}>
+              <Lightbulb size={16} className="text-white" />
+            </div>
+            <div>
+              <div className="text-sm" style={{ color: '#2F4F4F', fontWeight: 700 }}>해설</div>
+              <div className="text-[11px]" style={{ color: '#2F4F4F', opacity: 0.6, fontWeight: 500 }}>
+                AI가 정리한 핵심 풀이
+              </div>
+            </div>
+          </div>
+          <div className="px-6 md:px-8 py-6">
+            <div className="rounded-2xl p-4 mb-4" style={{ backgroundColor: '#F5F9F8' }}>
+              <div className="flex items-start gap-2">
+                <Sparkles size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#8CBDB3' }} />
+                <p className="text-sm leading-relaxed" style={{ color: '#2F4F4F', fontWeight: 500 }}>
+                  {question.explanation.summary}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-xs mb-3 inline-flex items-center gap-1.5" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+              <div className="w-1 h-3 rounded-full" style={{ backgroundColor: '#E67E22' }} />
+              핵심 포인트
+            </div>
+            <ul className="space-y-2.5">
+              {question.explanation.points.map((p, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm" style={{ color: '#2F4F4F', fontWeight: 500 }}>
+                  <span className="flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center text-[10px] mt-0.5 num-tabular" style={{ backgroundColor: '#FEF5EC', color: '#E67E22' }}>
+                    {i + 1}
+                  </span>
+                  <span className="leading-relaxed">{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

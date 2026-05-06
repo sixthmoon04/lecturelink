@@ -1,0 +1,589 @@
+// LectureLink Landing Page — Full Source
+// Stack: React + Tailwind CSS + lucide-react
+// 다른 Claude 세션에서 이 코드를 베이스로 기능을 덧붙이세요.
+// UI/UX 토큰과 인터랙션 패턴은 반드시 유지해 주세요.
+
+import React, { useState, useEffect } from 'react';
+import {
+  Menu, X, ArrowRight, Check, Sparkles, Brain, FileText,
+  Target, Shield, Zap, ChevronRight, Link2, Stethoscope,
+  Search, AlertTriangle
+} from './lecturelink-icons.jsx';
+
+export default function LectureLinkLanding() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [uploadCount, setUploadCount] = useState(0);
+  const [termsAgreed, setTermsAgreed] = useState(false);
+
+  // 라이브 카운트업: 0 → 542 (실서비스에서는 API 응답값으로 교체)
+  useEffect(() => {
+    const target = 542;
+    const duration = 1800;
+    const start = performance.now();
+    let frameId;
+
+    const tick = (now) => {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+      setUploadCount(Math.floor(eased * target));
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      } else {
+        setUploadCount(target);
+      }
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  // 브랜드 로고 (두 개의 'L'이 맞물려 'Link'를 형상화 + 중앙 오렌지 닷)
+  const Logo = ({ size = 36 }) => (
+    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="2" width="36" height="36" rx="10" fill="#8CBDB3"/>
+      <path d="M13 14 Q13 11 16 11 L19 11 Q22 11 22 14 L22 17" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+      <path d="M27 26 Q27 29 24 29 L21 29 Q18 29 18 26 L18 23" stroke="white" strokeWidth="2.2" strokeLinecap="round" fill="none"/>
+      <circle cx="20" cy="20" r="2.2" fill="#E67E22"/>
+    </svg>
+  );
+
+  // 업로드 아이콘 (파일 위로 화살표)
+  const UploadIcon = ({ size = 56 }) => (
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M32 10 V34" stroke="#8CBDB3" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M22 20 L32 10 L42 20" stroke="#8CBDB3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <path d="M12 40 V50 C12 52.7614 14.2386 55 17 55 H47 C49.7614 55 52 52.7614 52 50 V40" stroke="#2F4F4F" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+      <circle cx="48" cy="18" r="3" fill="#E67E22"/>
+    </svg>
+  );
+
+  // Hero 배경에 산포할 floating logos (AI 플랫폼 분위기)
+  const bgLogos = [
+    { top: '6%',  left: '5%',   size: 42, opacity: 0.08, rotate: -15 },
+    { top: '14%', right: '8%',  size: 64, opacity: 0.06, rotate: 14 },
+    { top: '28%', left: '3%',   size: 32, opacity: 0.08, rotate: 22 },
+    { top: '36%', right: '4%',  size: 76, opacity: 0.05, rotate: -18 },
+    { top: '48%', left: '10%',  size: 40, opacity: 0.07, rotate: 8 },
+    { top: '58%', right: '14%', size: 52, opacity: 0.06, rotate: -25 },
+    { top: '70%', left: '6%',   size: 36, opacity: 0.07, rotate: 12 },
+    { top: '80%', right: '9%',  size: 48, opacity: 0.06, rotate: -10 },
+    { top: '18%', left: '38%',  size: 28, opacity: 0.06, rotate: 30 },
+    { top: '42%', left: '42%',  size: 36, opacity: 0.05, rotate: -8 },
+    { top: '88%', left: '30%',  size: 44, opacity: 0.07, rotate: 16 },
+    { top: '92%', right: '28%', size: 30, opacity: 0.06, rotate: -22 },
+  ];
+
+  return (
+    <>
+      {/* ==================== 글로벌 폰트 & 스타일 ==================== */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@100;200;300;400;500;600;700&display=swap');
+
+        @font-face {
+          font-family: 'LINESeedKR';
+          font-weight: 400;
+          src: url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Rg.woff2') format('woff2');
+          font-display: swap;
+        }
+        @font-face {
+          font-family: 'LINESeedKR';
+          font-weight: 700;
+          src: url('https://cdn.jsdelivr.net/gh/webfontworld/lineseed/LINESeedKR-Bd.woff2') format('woff2');
+          font-display: swap;
+        }
+
+        .ll-root, .ll-root * {
+          font-family: 'LINESeedKR', 'IBM Plex Sans KR', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+          font-synthesis: weight;
+          letter-spacing: -0.03em;
+        }
+        .ll-root h1, .ll-root h2, .ll-root h3 {
+          font-family: 'LINESeedKR', 'IBM Plex Sans KR', sans-serif;
+          font-weight: 700;
+          letter-spacing: -0.05em;
+        }
+        .ll-root .ui-bold { font-weight: 700; }
+        .ll-root .ui-heavy { font-weight: 800; }
+        .ll-root .num-tabular {
+          font-feature-settings: "tnum";
+          font-weight: 800;
+        }
+        .terms-scroll::-webkit-scrollbar { width: 6px; }
+        .terms-scroll::-webkit-scrollbar-track { background: transparent; }
+        .terms-scroll::-webkit-scrollbar-thumb { background: #D3D9D4; border-radius: 3px; }
+        .terms-scroll::-webkit-scrollbar-thumb:hover { background: #8CBDB3; }
+      `}</style>
+
+      <div className="ll-root min-h-screen bg-white">
+        {/* ==================== HEADER ==================== */}
+        <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <Logo size={36} />
+              <span className="text-xl" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                LectureLink
+              </span>
+            </div>
+
+            <nav className="hidden md:flex items-center gap-8">
+              <a href="#why" className="text-sm hover:opacity-70 transition" style={{ color: '#2F4F4F', fontWeight: 500 }}>기능 소개</a>
+              <a href="#how" className="text-sm hover:opacity-70 transition" style={{ color: '#2F4F4F', fontWeight: 500 }}>작동 방식</a>
+              <a href="#pricing" className="text-sm hover:opacity-70 transition" style={{ color: '#2F4F4F', fontWeight: 500 }}>요금제</a>
+              <a href="#" className="text-sm hover:opacity-70 transition" style={{ color: '#2F4F4F', fontWeight: 500 }}>로그인</a>
+              <button className="px-5 py-2.5 rounded-full text-sm text-white transition hover:shadow-lg hover:-translate-y-0.5" style={{ backgroundColor: '#2F4F4F', fontWeight: 700 }}>
+                시작하기
+              </button>
+            </nav>
+
+            <button className="md:hidden" onClick={() => setMenuOpen(!menuOpen)} style={{ color: '#2F4F4F' }}>
+              {menuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {menuOpen && (
+            <div className="md:hidden bg-white border-t border-gray-100">
+              <div className="px-6 py-4 flex flex-col gap-4">
+                <a href="#why" className="text-sm" style={{ color: '#2F4F4F', fontWeight: 500 }}>기능 소개</a>
+                <a href="#how" className="text-sm" style={{ color: '#2F4F4F', fontWeight: 500 }}>작동 방식</a>
+                <a href="#pricing" className="text-sm" style={{ color: '#2F4F4F', fontWeight: 500 }}>요금제</a>
+                <a href="#" className="text-sm" style={{ color: '#2F4F4F', fontWeight: 500 }}>로그인</a>
+                <button className="w-full py-2.5 rounded-full text-sm text-white" style={{ backgroundColor: '#2F4F4F', fontWeight: 700 }}>
+                  시작하기
+                </button>
+              </div>
+            </div>
+          )}
+        </header>
+
+        {/* ==================== HERO SECTION ==================== */}
+        <section className="relative overflow-hidden bg-white">
+          {/* Floating logos 배경 (12개 로고 산포) */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            {bgLogos.map((lg, i) => (
+              <div
+                key={i}
+                className="absolute"
+                style={{
+                  top: lg.top,
+                  ...(lg.left ? { left: lg.left } : {}),
+                  ...(lg.right ? { right: lg.right } : {}),
+                  opacity: lg.opacity,
+                  transform: `rotate(${lg.rotate}deg)`,
+                }}
+              >
+                <Logo size={lg.size} />
+              </div>
+            ))}
+          </div>
+
+          <div className="relative max-w-3xl mx-auto px-6 pt-20 pb-24">
+            {/* 베타 뱃지 + 메인 카피 + 서브 카피 (중앙 정렬) */}
+            <div className="flex flex-col items-center justify-center gap-8 mb-12">
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border" style={{ backgroundColor: '#F5F9F8', borderColor: '#8CBDB3' }}>
+                <Sparkles size={14} style={{ color: '#8CBDB3' }} />
+                <span className="text-xs" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                  베타 테스트 진행 중
+                </span>
+              </div>
+
+              <h1 className="text-4xl md:text-6xl leading-[1.25] text-center" style={{ color: '#2F4F4F' }}>
+                <span style={{ color: '#E67E22' }}>야마</span>와 <span style={{ color: '#E67E22' }}>KMLE</span>를
+                <br />
+                <span className="ui-heavy" style={{ color: '#8CBDB3', fontSize: '1.05em' }}>AI</span>로 단일화
+              </h1>
+
+              <p className="text-base md:text-lg text-center" style={{ color: '#2F4F4F', opacity: 0.75, fontWeight: 500 }}>
+                교수님별 강의록 기반 맞춤형 AI 튜터
+              </p>
+            </div>
+
+            {/* 검색 + 업로드 + 약관 블록 */}
+            <div className="max-w-xl mx-auto">
+              {/* 검색바 (약관 동의에 따라 활성화/비활성화) */}
+              <div className="relative group mb-3">
+                <div className="absolute inset-0 rounded-full blur-xl opacity-20 group-focus-within:opacity-40 transition" style={{ backgroundColor: '#8CBDB3' }} />
+                <div className="relative bg-white rounded-full shadow-md border border-gray-100 flex items-center pl-7 pr-5 py-1.5 transition focus-within:border-[#8CBDB3] focus-within:shadow-lg">
+                  <input
+                    type="text"
+                    placeholder={termsAgreed ? '교수명 · 강의록 주제 검색' : '이용약관 동의 후 검색 가능합니다'}
+                    disabled={!termsAgreed}
+                    className="flex-1 py-3 outline-none bg-transparent text-sm"
+                    style={{ color: '#2F4F4F', fontWeight: 500 }}
+                  />
+                  <button
+                    aria-label={termsAgreed ? '검색' : '이용약관 동의 필요'}
+                    disabled={!termsAgreed}
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition ${termsAgreed ? 'cursor-pointer hover:scale-110' : 'cursor-not-allowed'}`}
+                    style={{
+                      color: '#FFFFFF',
+                      backgroundColor: termsAgreed ? '#E67E22' : '#D3D9D4',
+                    }}
+                  >
+                    <Search size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+
+              {/* 업로드 카드 */}
+              <button className="w-full bg-white border-2 border-dashed rounded-3xl p-5 flex items-center gap-4 hover:border-[#8CBDB3] hover:bg-[#F5F9F8] transition group text-left" style={{ borderColor: '#D3D9D4' }}>
+                <div className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition group-hover:scale-105" style={{ backgroundColor: '#F5F9F8' }}>
+                  <UploadIcon size={36} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm mb-1" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                    내 강의록 업로드하고 분석하기
+                  </div>
+                  <div className="text-xs" style={{ color: '#9CA3AF', fontWeight: 400 }}>
+                    [베타테스트 이후 추가 예정]
+                  </div>
+                </div>
+                <ArrowRight size={18} className="flex-shrink-0 transition group-hover:translate-x-1" style={{ color: '#8CBDB3' }} />
+              </button>
+
+              <div className="flex justify-center mt-4 mb-5">
+                <a href="#upload" className="inline-flex items-center gap-1 text-xs hover:opacity-70 transition" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 500 }}>
+                  혹시 없는 강의록인가요? 직접 업로드하기 →
+                </a>
+              </div>
+
+              {/* 이용약관 박스 */}
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 mb-2 px-1">
+                  <Shield size={12} style={{ color: '#8CBDB3' }} />
+                  <span className="text-[11px]" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 700, letterSpacing: '0.02em' }}>
+                    이용약관 · 반드시 확인해주세요
+                  </span>
+                </div>
+                <div className="terms-scroll overflow-y-auto h-56 p-5 rounded-2xl border text-xs leading-relaxed" style={{ backgroundColor: '#F7F8F7', borderColor: '#E5EAE8', color: '#2F4F4F' }}>
+                  <div className="mb-1" style={{ fontWeight: 700, fontSize: '13px' }}>
+                    [LectureLink] 베타 서비스 이용약관
+                  </div>
+                  <div className="text-[10px] mb-4 pb-3 border-b" style={{ opacity: 0.65, fontWeight: 500, borderColor: '#E5EAE8' }}>
+                    시행일: 2026년 5월 4일 · 베타 기간 한정 적용
+                  </div>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제1조 (목적)</div>
+                  <p className="mb-3">본 약관은 [LectureLink] (이하 "서비스")이 운영하는 학습 자료 공유 웹사이트의 베타 테스트 기간 중 이용에 관한 기본적인 사항을 규정합니다.</p>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제2조 (베타 서비스 범위 및 대상)</div>
+                  <ol className="list-decimal mb-3 space-y-1 pl-5">
+                    <li>본 서비스는 현재 베타 테스트 단계로, 초대받은 특정 학번 학생에게만 제한적으로 제공됩니다.</li>
+                    <li>베타 기간 중 서비스 내용, 기능, 약관은 사전 고지 없이 변경될 수 있습니다.</li>
+                    <li>본 서비스는 비영리·학습 목적으로만 운영되며, 상업적 이용을 일체 금지합니다.</li>
+                  </ol>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제3조 (서비스 내 자료의 성격)</div>
+                  <ol className="list-decimal mb-3 space-y-1 pl-5">
+                    <li>서비스 내 제공되는 강의록, 기출문제 등 학습 자료(이하 "자료")는 학습 편의를 위해 한시적으로 제공되는 것으로, 해당 자료의 저작권은 원 제작자(교수 등)에게 귀속됩니다.</li>
+                    <li>운영자는 저작권자의 권리를 존중하며, 저작권자의 요청이 있을 경우 해당 자료를 즉시 삭제합니다.</li>
+                  </ol>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제4조 (이용자의 의무 — 자료 유출 금지)</div>
+                  <ol className="list-decimal mb-3 space-y-1 pl-5">
+                    <li>이용자는 서비스 내 자료를 개인 학습 목적 외에 사용할 수 없습니다.</li>
+                    <li>
+                      다음 각 호의 행위를 엄격히 금지합니다.
+                      <ol className="list-decimal mt-1 space-y-0.5 pl-5" style={{ listStyleType: 'lower-roman' }}>
+                        <li>서비스 내 자료를 외부 플랫폼, SNS, 커뮤니티 등에 유포·공유하는 행위</li>
+                        <li>자료를 복제·재배포·판매하는 행위</li>
+                        <li>자료를 상업적 목적으로 이용하는 행위</li>
+                        <li>서비스 접근 계정·링크를 타인에게 양도하는 행위</li>
+                      </ol>
+                    </li>
+                    <li>위 금지 행위는 저작권법 위반에 해당할 수 있으며, 이로 인한 법적 책임은 해당 이용자에게 있습니다.</li>
+                  </ol>
+
+                  <div className="rounded-xl p-3 mb-3 flex gap-2 items-start" style={{ backgroundColor: '#FFF4E6', border: '1px solid #F5D1A9' }}>
+                    <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" style={{ color: '#E67E22' }} />
+                    <div className="text-[11px] leading-relaxed" style={{ color: '#2F4F4F', fontWeight: 500 }}>
+                      서비스 내 자료를 무단으로 외부에 유출할 경우, 저작권법 제136조에 따라 <span style={{ fontWeight: 700, color: '#E67E22' }}>5년 이하의 징역 또는 5천만 원 이하의 벌금</span>에 처해질 수 있습니다.
+                    </div>
+                  </div>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제5조 (운영자의 의무)</div>
+                  <ol className="list-decimal mb-3 space-y-1 pl-5">
+                    <li>운영자는 서비스 내 자료가 외부로 유출되지 않도록 기술적 보호 조치를 취하기 위해 노력합니다.</li>
+                    <li>저작권자로부터 자료 삭제 요청을 받은 경우 지체 없이 해당 자료를 삭제합니다.</li>
+                    <li>저작권 관련 문의 및 삭제 요청: <span style={{ fontWeight: 700 }}>sixthmoon_04@naver.com</span></li>
+                  </ol>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제6조 (면책)</div>
+                  <ol className="list-decimal mb-3 space-y-1 pl-5">
+                    <li>본 서비스는 무료로 제공되며, 운영자는 서비스 이용으로 인한 손해에 대해 책임을 지지 않습니다.</li>
+                    <li>베타 테스트 기간 중 서비스는 예고 없이 중단될 수 있습니다.</li>
+                  </ol>
+
+                  <div className="mb-1" style={{ fontWeight: 700 }}>제7조 (약관의 변경)</div>
+                  <p>본 약관은 베타 테스트 종료 후 정식 서비스 출시 시 전면 개정됩니다. 개정 약관은 서비스 내 공지로 효력이 발생합니다.</p>
+                </div>
+              </div>
+
+              {/* 동의 체크박스 (커스텀) */}
+              <label className="flex items-start gap-3 cursor-pointer group select-none p-3 rounded-2xl transition hover:bg-gray-50">
+                <div className="flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={termsAgreed}
+                    onChange={(e) => setTermsAgreed(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div
+                    className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition"
+                    style={{
+                      backgroundColor: termsAgreed ? '#E67E22' : '#FFFFFF',
+                      borderColor: termsAgreed ? '#E67E22' : '#C9D1CD',
+                    }}
+                  >
+                    {termsAgreed && <Check size={14} strokeWidth={3.5} className="text-white" />}
+                  </div>
+                </div>
+                <span className="text-xs leading-relaxed" style={{ color: '#2F4F4F', fontWeight: 500 }}>
+                  <span style={{ color: '#E67E22', fontWeight: 700 }}>[필수]</span> 위 약관을 모두 읽었으며, 자료 유출 금지 및 이용 조건에 동의합니다
+                </span>
+              </label>
+
+              {!termsAgreed && (
+                <div className="mt-3 text-center">
+                  <span className="text-[11px]" style={{ color: '#9CA3AF', fontWeight: 500 }}>
+                    약관에 동의하시면 검색 버튼이 활성화됩니다
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== WHY LECTURELINK (지표 4종) ==================== */}
+        <section id="why" className="bg-white py-20">
+          <div className="max-w-6xl mx-auto px-6">
+            <div className="text-center mb-14">
+              <div className="inline-block px-4 py-1.5 rounded-full mb-5" style={{ backgroundColor: '#F5F9F8' }}>
+                <span className="text-xs" style={{ color: '#8CBDB3', fontWeight: 700, letterSpacing: '0.05em' }}>WHY LECTURELINK</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl mb-4 leading-tight" style={{ color: '#2F4F4F' }}>
+                기술 신뢰도와 학습 데이터로 보는<br /><span style={{ color: '#E67E22' }}>LectureLink만의 장점</span>
+              </h2>
+              <p className="text-base md:text-lg" style={{ color: '#2F4F4F', opacity: 0.65, fontWeight: 500 }}>
+                베타 기간 중 실시간으로 집계되는 데이터입니다.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 라이브 카운트 카드 */}
+              <div className="relative p-7 rounded-3xl border-2 bg-white hover:shadow-xl hover:-translate-y-1 transition overflow-hidden" style={{ borderColor: '#E67E22' }}>
+                <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20" style={{ backgroundColor: '#E67E22' }} />
+                <div className="relative">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#E67E22' }} />
+                    <span className="text-[10px] uppercase" style={{ color: '#E67E22', fontWeight: 700, letterSpacing: '0.1em' }}>LIVE</span>
+                  </div>
+                  <div className="flex items-baseline gap-1 mb-3">
+                    <span className="text-5xl md:text-6xl num-tabular" style={{ color: '#E67E22' }}>
+                      {uploadCount.toLocaleString()}
+                    </span>
+                    <span className="text-2xl" style={{ color: '#E67E22', fontWeight: 700 }}>개</span>
+                  </div>
+                  <div className="text-sm mb-1" style={{ color: '#2F4F4F', fontWeight: 700 }}>현재 업로드된 강의록</div>
+                  <div className="text-xs" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 400 }}>
+                    베타 참여자와 함께 계속 늘어나는 중
+                  </div>
+                </div>
+              </div>
+
+              {[
+                { icon: Target, value: '98.7', unit: '%', label: '매칭 정확도', desc: '족보–KMLE 연결 정밀도' },
+                { icon: FileText, value: '93', unit: '%', label: '요약 일관성', desc: '강의록 요약 일관성 수치' },
+                { icon: Brain, value: '95.1', unit: '%', label: '유사도 검증', desc: '오답 기반 AI 유사 문제 매핑' },
+              ].map((stat, i) => (
+                <div key={i} className="relative p-7 rounded-3xl border border-gray-100 bg-white hover:shadow-md hover:-translate-y-1 transition">
+                  <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-3" style={{ backgroundColor: '#F5F9F8' }}>
+                    <stat.icon size={18} style={{ color: '#8CBDB3' }} />
+                  </div>
+                  <div className="text-5xl md:text-6xl mb-3 num-tabular" style={{ color: '#2F4F4F' }}>
+                    {stat.value}<span className="text-3xl">{stat.unit}</span>
+                  </div>
+                  <div className="text-sm mb-1" style={{ color: '#2F4F4F', fontWeight: 700 }}>{stat.label}</div>
+                  <div className="text-xs" style={{ color: '#2F4F4F', opacity: 0.55, fontWeight: 400 }}>
+                    {stat.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== CORE FEATURES (3가지 엔진) ==================== */}
+        <section id="features" className="py-20" style={{ backgroundColor: '#FAFBFB' }}>
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="text-center mb-16">
+              <div className="inline-block px-4 py-1.5 rounded-full mb-4" style={{ backgroundColor: '#F5F9F8' }}>
+                <span className="text-xs" style={{ color: '#8CBDB3', fontWeight: 700, letterSpacing: '0.05em' }}>CORE FEATURES</span>
+              </div>
+              <h2 className="text-3xl md:text-5xl mb-5 leading-tight" style={{ color: '#2F4F4F' }}>
+                본과생의 시간을 설계하는<br />
+                <span style={{ color: '#E67E22' }}>3가지</span> 엔진
+              </h2>
+              <p className="text-base md:text-lg max-w-2xl mx-auto" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 500 }}>
+                흩어진 학습 자료를 정밀하게 꿰어 내신과 KMLE를 <span style={{ color: '#E67E22', fontWeight: 700 }}>동시에</span> 잡습니다.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {[
+                { icon: Link2, color: '#8CBDB3', title: '강의록 · 기출 · KMLE\n자동 매핑', desc: '학교 야마 PDF를 올리면 AI가 관련 기출과 KMLE 문항을 단원별로 연결해 드립니다.', tag: '단원별 자동 연결' },
+                { icon: Brain, color: '#E67E22', title: 'AI 오답 기반\n유사 문제 생성', desc: '틀린 문제의 개념을 분석해 같은 약점을 찌르는 변형 문제를 만들어 드립니다.', tag: '개념 · 증례 · 임상추론' },
+                { icon: Target, color: '#2F4F4F', title: '실전 대비\n최종 모의고사', desc: '학교 시험 패턴과 KMLE 출제 경향을 반영한 맞춤 모의고사를 제공합니다.', tag: '실시간 성적 분석 리포트' },
+              ].map((feat, i) => (
+                <div key={i} className="bg-white rounded-3xl p-8 transition hover:shadow-xl hover:-translate-y-1 border border-gray-100">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: feat.color }}>
+                    <feat.icon size={22} className="text-white" />
+                  </div>
+                  <h3 className="text-xl mb-3 leading-snug whitespace-pre-line" style={{ color: '#2F4F4F' }}>
+                    {feat.title}
+                  </h3>
+                  <p className="text-sm mb-6" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 400 }}>
+                    {feat.desc}
+                  </p>
+                  <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
+                    <Check size={14} style={{ color: '#8CBDB3' }} />
+                    <span className="text-xs" style={{ color: '#2F4F4F', fontWeight: 700 }}>{feat.tag}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== HOW IT WORKS (3단계) ==================== */}
+        <section id="how" className="max-w-7xl mx-auto px-6 py-20">
+          <div className="bg-white rounded-3xl p-10 md:p-16 border border-gray-100 shadow-sm">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl mb-4" style={{ color: '#2F4F4F' }}>
+                복잡한 과정, 단 3단계
+              </h2>
+              <p className="text-base" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 500 }}>
+                업로드부터 맞춤 학습까지 1분이면 충분합니다.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                { num: '01', title: '자료 업로드', desc: '강의록과 야마 파일을 드래그해 넣어 주세요.', icon: FileText },
+                { num: '02', title: 'AI 분석 & 매핑', desc: '핵심 개념이 기출과 KMLE에 자동 연결됩니다.', icon: Brain },
+                { num: '03', title: '맞춤 학습 시작', desc: '나의 약점을 겨냥한 문제로 바로 학습.', icon: Sparkles },
+              ].map((step, i) => (
+                <div key={i} className="relative">
+                  <div className="text-5xl mb-3 num-tabular" style={{ color: '#8CBDB3', opacity: 0.3 }}>{step.num}</div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <step.icon size={18} style={{ color: '#8CBDB3' }} />
+                    <h3 className="text-lg" style={{ color: '#2F4F4F' }}>{step.title}</h3>
+                  </div>
+                  <p className="text-sm" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 400 }}>
+                    {step.desc}
+                  </p>
+                  {i < 2 && (
+                    <ChevronRight className="hidden md:block absolute -right-4 top-16" size={20} style={{ color: '#8CBDB3' }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== TRUST / TECH (듀얼 카드) ==================== */}
+        <section className="max-w-7xl mx-auto px-6 py-20">
+          <div className="grid md:grid-cols-2 gap-8">
+            <div className="rounded-3xl p-10 text-white relative overflow-hidden" style={{ backgroundColor: '#2F4F4F' }}>
+              <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-20" style={{ backgroundColor: '#8CBDB3' }} />
+              <Zap size={32} style={{ color: '#8CBDB3' }} className="mb-6" />
+              <h3 className="text-2xl mb-4">AI 토큰 최적화</h3>
+              <p className="text-sm opacity-80 mb-6" style={{ fontWeight: 400 }}>
+                의료 도메인 인덱싱 엔진으로 불필요한 연산을 줄여, 같은 품질을 더 빠르게 제공합니다.
+              </p>
+              <div className="flex gap-6 pt-6 border-t border-white/10">
+                <div>
+                  <div className="text-2xl num-tabular" style={{ color: '#8CBDB3' }}>-68%</div>
+                  <div className="text-xs opacity-70 mt-1" style={{ fontWeight: 500 }}>토큰 사용량</div>
+                </div>
+                <div>
+                  <div className="text-2xl num-tabular" style={{ color: '#8CBDB3' }}>3.2s</div>
+                  <div className="text-xs opacity-70 mt-1" style={{ fontWeight: 500 }}>평균 응답 속도</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl p-10 bg-white border border-gray-100 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 rounded-full blur-3xl opacity-30" style={{ backgroundColor: '#8CBDB3' }} />
+              <Shield size={32} style={{ color: '#E67E22' }} className="mb-6 relative" />
+              <h3 className="text-2xl mb-4 relative" style={{ color: '#2F4F4F' }}>안전한 데이터 관리</h3>
+              <p className="text-sm mb-6 relative" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 400 }}>
+                업로드된 강의록은 암호화 저장되며, 외부 모델 학습에 사용되지 않습니다.
+              </p>
+              <div className="flex flex-wrap gap-2 relative">
+                <span className="px-3 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#F5F9F8', color: '#2F4F4F', fontWeight: 700 }}>End-to-End 암호화</span>
+                <span className="px-3 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#F5F9F8', color: '#2F4F4F', fontWeight: 700 }}>ISO 27001 준수</span>
+                <span className="px-3 py-1.5 rounded-full text-xs" style={{ backgroundColor: '#F5F9F8', color: '#2F4F4F', fontWeight: 700 }}>학습 데이터 분리</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== CTA ==================== */}
+        <section id="pricing" className="max-w-5xl mx-auto px-6 py-20">
+          <div className="rounded-[2.5rem] p-12 md:p-16 text-center relative overflow-hidden" style={{ backgroundColor: '#8CBDB3' }}>
+            <div className="absolute -top-20 -left-20 w-60 h-60 rounded-full bg-white/20 blur-2xl" />
+            <div className="absolute -bottom-20 -right-20 w-60 h-60 rounded-full bg-white/20 blur-2xl" />
+
+            <div className="relative">
+              <Stethoscope size={40} className="text-white mx-auto mb-6" />
+              <h2 className="text-3xl md:text-4xl text-white mb-5">
+                오늘 밤, 더 효율적으로 공부하세요
+              </h2>
+              <p className="text-base md:text-lg text-white/95 mb-10 max-w-2xl mx-auto leading-relaxed" style={{ fontWeight: 500 }}>
+                베타 테스트 기간 동안 모든 기능을 무료로 이용하실 수 있습니다.<br className="hidden md:block" />
+                지금 가입하고 AI 튜터와 함께 학습 시간을 단축해보세요.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <button className="px-8 py-4 rounded-full flex items-center justify-center gap-2 transition hover:shadow-xl hover:-translate-y-0.5 bg-white" style={{ color: '#2F4F4F', fontWeight: 700 }}>
+                  지금 바로 시작하기 <ArrowRight size={18} />
+                </button>
+                <button className="px-8 py-4 rounded-full text-white border-2 border-white/60 transition hover:bg-white/10" style={{ fontWeight: 700 }}>
+                  서비스 둘러보기
+                </button>
+              </div>
+              <p className="text-xs text-white/90 mt-6" style={{ fontWeight: 700 }}>결제 정보 불필요 · 베타 기간 전면 무료</p>
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== FOOTER ==================== */}
+        <footer className="border-t border-gray-100">
+          <div className="max-w-7xl mx-auto px-6 py-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex items-center gap-2.5">
+                <Logo size={32} />
+                <div>
+                  <div className="text-base" style={{ color: '#2F4F4F', fontWeight: 700 }}>LectureLink</div>
+                  <div className="text-xs" style={{ color: '#2F4F4F', opacity: 0.6, fontWeight: 500 }}>의대생 AI 학습 솔루션</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-6 text-xs" style={{ color: '#2F4F4F', opacity: 0.7, fontWeight: 500 }}>
+                <a href="#" className="hover:opacity-100">서비스 소개</a>
+                <a href="#" className="hover:opacity-100">이용약관</a>
+                <a href="#" className="hover:opacity-100">개인정보처리방침</a>
+                <a href="#" className="hover:opacity-100">문의하기</a>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t flex flex-col md:flex-row justify-between gap-2 text-xs" style={{ borderColor: '#F0F0F0', color: '#2F4F4F', opacity: 0.6, fontWeight: 500 }}>
+              <div>© <span className="num-tabular">2026</span> LectureLink. All rights reserved.</div>
+              <div>Made with care for future doctors.</div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
+}
